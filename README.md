@@ -1,5 +1,5 @@
 # AI-Resistant CAPTCHA Systems
-Traditional CAPTCHAs based on text, images, or audio are increasingly compromised, while biometric and adversarial methods raise concerns around privacy and usability. This project explores a new direction: cognitive and perceptual CAPTCHAs that leverage innate human advantages—such as flash-lag perception, biological motion, and gesture mimicry - to resist automation and relay attacks.
+Traditional CAPTCHAs based on text, images, or audio are increasingly compromised, while biometric and adversarial methods raise concerns around privacy and usability. This project explores a new direction: cognitive and perceptual CAPTCHAs that leverage innate human advantages - such as flash-lag perception, biological motion, and gesture mimicry - to resist automation and relay attacks.
 
 ## Flash-Lag CAPTCHA
 This prototype CAPTCHA system leverages **human temporal perception** - specifically the flash-lag illusion - to distinguish humans from AI bots.
