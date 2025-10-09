@@ -14,24 +14,29 @@ canvas { display:block; margin:20px auto; background:#f3f4f6; border-radius:50%;
 <h2>Align on Cue</h2>
 <p>Wait for the 🔔 beep, align the green bar with the red one, then click Submit (or press Space).</p>
 <canvas id="stage" width="300" height="300" aria-label="alignment stage"></canvas>
-<div id="status">Waiting for beep…</div>
+<div id="status">Loading challenge…</div>
 <button id="submitBtn">Submit</button>
+
 
 <script>
 (() => {
+const API_BASE = 'http://localhost:3000/api/v1';
+
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
 const submitBtn = document.getElementById('submitBtn');
 const W = canvas.width, H = canvas.height, R = 150;
 
-// --- challenge params ---
-const target = Math.floor(Math.random() * 360); // 0..360
-const tolerance = 8;
-
+// --- runtime state ---
+let challengeData = null;
 let pointerAngle = 0;
 let dragging = false, startX = 0, startAngle = 0, pointerId = null;
 let beepActive = false, beepStart = 0, success = false;
+
+let moveHistory = [];
+let lastMoveTime = 0;
+let startTime = 0;
 
 // --- audio ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -40,8 +45,7 @@ function resumeAudioContextOnce() {
   if (!audioCtx) { audioCtx = new AudioCtx(); audioCtx.resume().catch(()=>{}); }
 }
 function playBeep() {
-  if(!audioCtx){ resumeAudioContextOnce(); }
-  if(!audioCtx) return;
+  resumeAudioContextOnce();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = 'sine';
@@ -54,9 +58,8 @@ function playBeep() {
   osc.stop(now + 0.2);
 }
 
-// --- robust wrap-around difference (direction-agnostic) ---
+// --- helpers ---
 function normalizeAngle(angle) {
-    // Normalize angle to [-180, 180)
     angle = angle % 360;
     if (angle > 180) angle -= 360;
     if (angle <= -180) angle += 360;
@@ -64,13 +67,19 @@ function normalizeAngle(angle) {
 }
 
 function angleDiffAbs(a, b) {
-    // Get absolute difference between angles
-    let diff = Math.abs(normalizeAngle(a) - normalizeAngle(b));
-    // If difference is greater than 90, then bars are parallel
-    if (diff > 90) {
-        diff = Math.abs(180 - diff);
+    // Get absolute difference between angles in either direction
+    let diff = Math.abs(normalizeAngle(a - b));
+    return Math.min(diff, 360 - diff);
+}
+
+// Update the computeTargetAngle function
+function computeTargetAngle(seed) {
+    const array = new Uint8Array(32);
+    for (let i = 0; i < seed.toString().length; i++) {
+        array[i] = seed.toString().charCodeAt(i);
     }
-    return diff;
+    const hashArray = new Uint32Array(array.buffer);
+    return hashArray[0] % 360;  // Match server-side calculation
 }
 
 // --- drawing ---
@@ -92,111 +101,268 @@ function draw() {
   ctx.save();
   ctx.translate(W/2,H/2);
 
-  // target bar (no changes needed to rotation)
-  ctx.save();
-  ctx.rotate(target * Math.PI / 180);
-  ctx.fillStyle = 'rgba(244,63,94,0.32)';
-  ctx.fillRect(-90,-7,180,14);
-  ctx.restore();
+  if (challengeData) {
+        const targetAngle = normalizeAngle(challengeData._targetAngle);
+        ctx.save();
+        ctx.rotate(targetAngle * Math.PI / 180);
+        ctx.fillStyle = 'rgba(244,63,94,0.32)';
+        ctx.fillRect(-90,-7,180,14);
+        ctx.restore();
+    }
 
-  // pointer bar (no changes needed to rotation)
-  ctx.save();
-  ctx.rotate(pointerAngle * Math.PI / 180);
-  ctx.fillStyle = '#34d399';
-  ctx.fillRect(-90,-7,180,14);
-  ctx.restore();
+    // Use normalized angle for pointer
+    const normalizedPointer = normalizeAngle(pointerAngle);
+    ctx.save();
+    ctx.rotate(normalizedPointer * Math.PI / 180);
+    ctx.fillStyle = '#34d399';
+    ctx.fillRect(-90,-7,180,14);
+    ctx.restore();
 
   ctx.restore();
   requestAnimationFrame(draw);
 }
 
 // --- pointer handlers ---
-canvas.addEventListener('pointerdown', e=>{
-  resumeAudioContextOnce();
-  dragging = true;
-  pointerId = e.pointerId;
-  startX = e.clientX;
-  startAngle = pointerAngle;
+canvas.addEventListener('pointerdown', e => {
+    resumeAudioContextOnce();
+    dragging = true;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startAngle = pointerAngle;
+    moveHistory = []; // Reset movement history on new drag
+    lastMoveTime = performance.now();
 });
-canvas.addEventListener('pointermove', e=>{
-  if(!dragging || e.pointerId !== pointerId) return;
-  const dx = e.clientX - startX;
-  pointerAngle = startAngle + dx/3;
+
+canvas.addEventListener('pointermove', e => {
+    if (!dragging || e.pointerId !== pointerId) return;
+    
+    const now = performance.now();
+    const rect = canvas.getBoundingClientRect();
+    const dx = e.clientX - startX;
+    pointerAngle = startAngle + dx/3;
+
+    moveHistory.push({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        timestamp: now,
+        pressure: e.pressure || 0,
+        angle: pointerAngle,
+        speed: lastMoveTime ? Math.sqrt(
+            Math.pow(e.movementX || 0, 2) + 
+            Math.pow(e.movementY || 0, 2)
+        ) / (now - lastMoveTime) : 0,
+        dt: now - lastMoveTime
+    });
+    
+    lastMoveTime = now;
 });
+
 canvas.addEventListener('pointerup', e=>{
   if(e.pointerId === pointerId) dragging = false;
 });
 
 // --- keyboard ---
 document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowLeft'){ pointerAngle -= 2; }
-  if(e.key==='ArrowRight'){ pointerAngle += 2; }
+  if(e.key==='ArrowLeft') pointerAngle -= 2;
+  if(e.key==='ArrowRight') pointerAngle += 2;
   if(e.key===' ') attemptSubmit();
 });
 
-// --- beep scheduling ---
-function getRandomDuration() {
-    // Returns random duration between 800ms and 1600ms
-    return 800 + (Math.random() * 800);
-}
+// --- beep ---
+function getRandomDuration() { return 800 + (Math.random() * 800); }
 
 function triggerBeep(){
-    beepActive = true;
-    beepStart = performance.now();
-    flashAlpha = 0.6;
-    playBeep();
-    status.textContent = '🔔 Align now!';
-    
-    // Use closure to keep duration private
-    const duration = getRandomDuration();
-    setTimeout(()=>{
-        beepActive = false;
-        flashAlpha = 0;
-        if(!success){
-            status.textContent = '⏳ Beep ended. Waiting...';
-            scheduleBeep();
-        }
-    }, duration);
+  beepActive = true;
+  beepStart = performance.now();
+  flashAlpha = 0.6;
+  playBeep();
+  status.textContent = '🔔 Align now!';
+  const duration = getRandomDuration();
+  setTimeout(()=>{
+    beepActive = false;
+    flashAlpha = 0;
+    if(!success){
+      status.textContent = '⏳ Waiting for next beep…';
+      scheduleBeep();
+    }
+  }, duration);
 }
 function scheduleBeep(){
   const delay = 2000 + Math.random()*3000;
   setTimeout(triggerBeep, delay);
 }
 
+// --- backend integration ---
+async function fetchChallenge() {
+    try {
+        const res = await fetch(`${API_BASE}/challenge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_id: 'browser-demo' })
+        });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log('Challenge response:', data); // Debug logging
+        
+        if (!data.challenge || !data.sig) {
+            throw new Error('Invalid challenge format');
+        }
+
+        challengeData = data;
+        
+        // Parse challenge and compute target angle
+        const challengeBlob = JSON.parse(atob(data.challenge));
+        challengeData._targetAngle = computeTargetAngle(challengeBlob.seed);
+        
+        console.log('Target angle:', challengeData._targetAngle); // Debug logging
+        
+        status.textContent = 'Waiting for beep…';
+        scheduleBeep();
+    } catch (err) {
+        console.error('Challenge error:', err);
+        status.textContent = `❌ Failed to load challenge: ${err.message}`;
+    }
+}
+
+// Update the verifyAttempt function
+async function verifyAttempt(error, reaction) {
+    // Only include movements after beep started
+    const validMoves = moveHistory.filter(m => m.timestamp >= beepStart);
+    
+    // Add keyboard moves if no pointer moves
+    if (validMoves.length === 0 && beepStart) {
+        validMoves.push({
+            x: W/2,
+            y: H/2,
+            timestamp: performance.now(),
+            pressure: 1,
+            angle: pointerAngle,
+            speed: 1,
+            dt: performance.now() - beepStart,
+            keyboard: true
+        });
+    }
+
+    const payload = {
+        challenge: challengeData.challenge,
+        sig: challengeData.sig,
+        user_angle: normalizeAngle(pointerAngle),
+        reaction_client_ms: Math.round(reaction),
+        movements: validMoves,
+        fingerprint: collectFingerprint(),
+        timing: {
+            dragStart: beepStart,
+            dragEnd: performance.now(),
+            totalMoves: validMoves.length,
+            averageSpeed: validMoves.length ? 
+                validMoves.reduce((acc, m) => acc + (m.speed || 0), 0) / validMoves.length : 
+                null
+        }
+    };
+
+    try {
+        const res = await fetch(`${API_BASE}/verify`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server responded with ${res.status}: ${errorText}`);
+        }
+
+        const data = await res.json();
+        console.log('Verification response:', data);
+
+        if (data.ok) {
+            status.textContent = '✅ Verified!';
+            status.style.color = 'green';
+            success = true;
+        } else {
+            // status.textContent = `❌ ${data.message || 'Verification failed'}`;
+            status.textContent = '❌ Verification failed. Please try again.';
+            status.style.color = 'red';
+        }
+    } catch (err) {
+        console.error('Verification error:', err);
+        // status.textContent = `❌ Error: ${err.message}`;
+        status.textContent = '❌ Please try again.';
+    }
+}
+
 // --- submit ---
-function attemptSubmit(){
-    if(!beepActive){
+function attemptSubmit() {
+    if(!beepActive) {
         status.textContent = '⏰ Too early! Wait for the beep.';
         return;
     }
-    const error = angleDiffAbs(pointerAngle, target);
-    const reaction = performance.now() - beepStart;
     
-    // Use a reasonable maximum duration for validation
-    const maxAllowedReaction = 2000; // 2 seconds max
-    
-    if(error <= tolerance && reaction <= maxAllowedReaction){
-        success = true;
-        // status.textContent = `✅ Verified! Error ${error.toFixed(1)}°, reaction ${reaction.toFixed(0)}ms`;
-        status.textContent = '✅ Verified!';
-        status.style.color = 'green';
-        beepActive = false;
-    } else if(error <= tolerance){
-        // status.textContent = `⚠️ Too slow (${reaction.toFixed(0)}ms)`;
-        status.textContent = '⚠️ Too slow';
-        status.style.color = 'orange';
-    } else {
-        // status.textContent = `❌ Off by ${error.toFixed(1)}°`;
-        status.textContent = '❌ Try again';
-        status.style.color = 'red';
+    if(!challengeData) {
+        status.textContent = '⚠️ Challenge not loaded';
+        return;
     }
+
+    const normalizedPointer = normalizeAngle(pointerAngle);
+    const normalizedTarget = normalizeAngle(challengeData._targetAngle);
+    const error = angleDiffAbs(normalizedPointer, normalizedTarget);
+    const reaction = performance.now() - beepStart;
+
+    console.log('Attempt details:', {
+        rawPointerAngle: pointerAngle,
+        normalizedPointer,
+        rawTargetAngle: challengeData._targetAngle,
+        normalizedTarget,
+        error,
+        reaction
+    });
+
+    verifyAttempt(error, reaction);
 }
 
 submitBtn.addEventListener('click', attemptSubmit);
 
+// --- fingerprint ---
+function collectFingerprint() {
+    return {
+        screen: {
+            width: screen.width,
+            height: screen.height,
+            colorDepth: screen.colorDepth,
+            orientation: screen.orientation?.type
+        },
+        browser: {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            languages: navigator.languages,
+            platform: navigator.platform,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            deviceMemory: navigator.deviceMemory,
+            maxTouchPoints: navigator.maxTouchPoints
+        },
+        capabilities: {
+            touch: 'ontouchstart' in window,
+            webgl: !!document.createElement('canvas').getContext('webgl'),
+            canvas: !!document.createElement('canvas').getContext('2d'),
+            audio: !!window.AudioContext || !!window.webkitAudioContext
+        },
+        automation: {
+            webdriver: !!navigator.webdriver,
+            selenium: !!window.selenium,
+            headless: !window.chrome || !!window.chrome.webstore
+        }
+    };
+}
+
 // --- init ---
 draw();
-scheduleBeep();
+fetchChallenge();
 })();
 </script>
 </body>
