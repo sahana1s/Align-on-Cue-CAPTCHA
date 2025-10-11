@@ -67,19 +67,17 @@ function normalizeAngle(angle) {
 }
 
 function angleDiffAbs(a, b) {
-    // Get absolute difference between angles in either direction
     let diff = Math.abs(normalizeAngle(a - b));
     return Math.min(diff, 360 - diff);
 }
 
-// Update the computeTargetAngle function
 function computeTargetAngle(seed) {
     const array = new Uint8Array(32);
     for (let i = 0; i < seed.toString().length; i++) {
         array[i] = seed.toString().charCodeAt(i);
     }
     const hashArray = new Uint32Array(array.buffer);
-    return hashArray[0] % 360;  // Match server-side calculation
+    return hashArray[0] % 360;
 }
 
 // --- drawing ---
@@ -110,7 +108,6 @@ function draw() {
         ctx.restore();
     }
 
-    // Use normalized angle for pointer
     const normalizedPointer = normalizeAngle(pointerAngle);
     ctx.save();
     ctx.rotate(normalizedPointer * Math.PI / 180);
@@ -129,7 +126,7 @@ canvas.addEventListener('pointerdown', e => {
     pointerId = e.pointerId;
     startX = e.clientX;
     startAngle = pointerAngle;
-    moveHistory = []; // Reset movement history on new drag
+    moveHistory = [];
     lastMoveTime = performance.now();
 });
 
@@ -228,12 +225,9 @@ async function fetchChallenge() {
     }
 }
 
-// Update the verifyAttempt function
 async function verifyAttempt(error, reaction) {
-    // Only include movements after beep started
     const validMoves = moveHistory.filter(m => m.timestamp >= beepStart);
     
-    // Add keyboard moves if no pointer moves
     if (validMoves.length === 0 && beepStart) {
         validMoves.push({
             x: W/2,
@@ -286,13 +280,11 @@ async function verifyAttempt(error, reaction) {
             status.style.color = 'green';
             success = true;
         } else {
-            // status.textContent = `❌ ${data.message || 'Verification failed'}`;
             status.textContent = '❌ Verification failed. Please try again.';
             status.style.color = 'red';
         }
     } catch (err) {
         console.error('Verification error:', err);
-        // status.textContent = `❌ Error: ${err.message}`;
         status.textContent = '❌ Please try again.';
     }
 }
