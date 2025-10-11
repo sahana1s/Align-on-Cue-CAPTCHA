@@ -1,4 +1,3 @@
-// server.js - Node.js/Express server implementation (no Redis)
 const express = require('express');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
@@ -6,9 +5,9 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 app.use(express.json());
 
-// --- CORS fix: allow your frontend to call the backend ---
+// --- CORS fix ---
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*'); // <-- match your serve port
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
@@ -42,11 +41,10 @@ const CONFIG = {
 
 const ENABLE_DEBUG_LOGGING = true;
 
-// Add rate limiting and tracking
 const ipAttempts = new Map();
 const suspiciousIPs = new Set();
 
-// 🧠 In-memory store (instead of Redis)
+// In-memory store
 const challenges = new Map();
 
 // Utility functions
