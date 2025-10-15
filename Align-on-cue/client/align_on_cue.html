@@ -227,7 +227,30 @@ async function verifyAttempt(error, reaction) {
   status.style.color = 'red';
 }
 
-function attemptSubmit() { if(!beepActive) { status.textContent = 'Too early! Wait for the beep.'; return; } if(!challengeData) { status.textContent = 'Challenge not loaded'; return; } const normalizedPointer = normalizeAngle(pointerAngle); const normalizedTarget = normalizeAngle(challengeData._targetAngle); const error = angleDiffAbs(normalizedPointer, normalizedTarget); const reaction = performance.now() - beepStart; verifyAttempt(error, reaction); }
+function attemptSubmit() { 
+  // Check if already verified
+  if(success) { 
+    status.textContent = 'CAPTCHA already verified!'; 
+    status.style.color = 'green';
+    return; 
+  } 
+  
+  if(!beepActive) { 
+    status.textContent = 'Too early! Wait for the beep.'; 
+    return; 
+  } 
+  
+  if(!challengeData) { 
+    status.textContent = 'Challenge not loaded'; 
+    return; 
+  } 
+  
+  const normalizedPointer = normalizeAngle(pointerAngle); 
+  const normalizedTarget = normalizeAngle(challengeData._targetAngle); 
+  const error = angleDiffAbs(normalizedPointer, normalizedTarget); 
+  const reaction = performance.now() - beepStart; 
+  verifyAttempt(error, reaction); 
+}
 
 submitBtn.addEventListener('click', attemptSubmit);
 
