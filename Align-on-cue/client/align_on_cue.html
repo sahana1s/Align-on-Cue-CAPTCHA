@@ -1,250 +1,241 @@
-const express = require('express');
-const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
-
-const app = express();
-app.use(express.json());
-
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:8080', 'http://localhost:3000'];
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) res.header('Access-Control-Allow-Origin', origin);
-    else res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    if (req.method === 'OPTIONS') return res.sendStatus(200);
-    next();
-});
-
-if (process.env.STRICT_ORIGIN === '1') {
-    app.use((req, res, next) => {
-        const origin = req.headers.origin;
-        if (req.path === '/health') return next();
-        if (!origin || !allowedOrigins.includes(origin)) return res.status(403).json({ ok: false, message: 'Origin not allowed' });
-        next();
-    });
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Align on Cue</title>
+<style>
+body { font-family: system-ui, sans-serif; text-align:center; padding:30px; background:#f9fafb; }
+#status { margin-top:14px; font-size:15px; color:#111827; min-height:20px; }
+button { margin-top:14px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:white; font-size:15px; cursor:pointer; }
+canvas { display:block; margin:20px auto; background:#f3f4f6; border-radius:50%; touch-action:none; }
+#cssNoise {
+    position:absolute; left:50%; transform:translateX(-50%); top:140px; pointer-events:none; mix-blend-mode:overlay;
+    opacity:0.12; width:300px; height:300px; border-radius:50%; z-index:4;
 }
+</style>
+</head>
+<body>
+<h2>Align on Cue</h2>
+<p>Wait for the 🔔 beep, align the green bar with the red one, then click Submit (or press Space). Use left/right arrows for fine adjustments. Accessible: focus the canvas and use keyboard controls.</p>
+<canvas id="stage" width="300" height="300" aria-label="alignment stage"></canvas>
+<canvas id="noise" width="300" height="300" style="position:absolute;left:50%;transform:translateX(-50%);top:140px;pointer-events:none;mix-blend-mode:overlay;opacity:0.25;border-radius:50%"></canvas>
+<div id="cssNoise" aria-hidden="true"></div>
+<div id="status" role="status" aria-live="polite">Loading challenge…</div>
+<div style="margin-top:8px">Remaining: <span id="remaining">--</span>s · Confidence: <span id="confidence">--</span></div>
+<button id="submitBtn">Submit</button>
 
-const CONFIG = {
-    SECRET_KEY: process.env.CAPTCHA_SECRET || 'your-256-bit-secret-key-here',
-    CHALLENGE_TTL: 90,
-    MIN_REACTION_MS: 60,
-    MAX_REACTION_MS: 3000,
-    PORT: process.env.PORT || 3000,
-    DEFAULT_POW_DIFFICULTY: parseInt(process.env.POW_DIFFICULTY || '1', 10),
-    RISK_LEVELS: {
-        LOW: { tolerance: 8, minMoves: 5 },
-        MEDIUM: { tolerance: 6, minMoves: 10 },
-        HIGH: { tolerance: 4, minMoves: 15 }
-    },
-    MOVEMENT_VALIDATION: {
-        MIN_SPEED_VARIANCE: 0.3,
-        MAX_LINEAR_MOVEMENTS: 0.4,
-        MIN_NATURAL_JITTER: 0.1
-    },
-    RATE_LIMITS: { WINDOW_MS: 15 * 60 * 1000, MAX_REQUESTS: 100 }
-};
 
-const ENABLE_DEBUG_LOGGING = process.env.DEBUG === '1';
+<script>
+(function(){
+const API_BASE = 'http://localhost:3000/api/v1';
 
-const ipAttempts = new Map();
-const ipFailures = new Map();
-const lockouts = new Map();
-const suspiciousIPs = new Set();
-const challenges = new Map();
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+const submitBtn = document.getElementById('submitBtn');
+const W = canvas.width, H = canvas.height, R = 150;
 
-let redisClient = null;
-if (process.env.REDIS_URL) {
-    try {
-        const { createClient } = require('redis');
-        redisClient = createClient({ url: process.env.REDIS_URL });
-        redisClient.connect().catch(e => console.error('redis connect failed', e));
-    } catch (e) { console.error('redis not available', e.message || e); }
-}
+let challengeData = null;
+let pointerAngle = 0;
+let dragging = false, startX = 0, startAngle = 0, pointerId = null;
+let beepActive = false, beepStart = 0, success = false;
 
-async function incrRateKey(key, windowMs) {
-    if (!redisClient) {
-        const arr = ipAttempts.get(key) || [];
-        const now = Date.now();
-        const windowStart = now - windowMs;
-        const recent = arr.filter(t => t >= windowStart);
-        recent.push(now);
-        ipAttempts.set(key, recent);
-        return recent.length;
-    }
-    const count = await redisClient.incr(key);
-    if (count === 1) await redisClient.pexpire(key, windowMs);
-    return parseInt(count, 10);
-}
+let moveHistory = [];
+let lastMoveTime = 0;
+let startTime = 0;
+const cssNoise = document.getElementById('cssNoise');
+let telemetry = [];
+function recordEvent(type, extra) { telemetry.push({ type, t: Date.now(), extra }); }
 
-async function setLockout(key, ms) {
-    if (!redisClient) {
-        lockouts.set(key, Date.now() + ms);
-        return;
-    }
-    await redisClient.set(`lockout:${key}`, '1', { PX: ms });
-}
+const palettes = [ ['#f87171','#34d399'], ['#fb923c','#60a5fa'], ['#facc15','#10b981'], ['#a78bfa','#f43f5e'] ];
+const picked = palettes[Math.floor(Math.random()*palettes.length)];
+const pointerColor = picked[1];
+const targetColor = picked[0];
+let pointerRound = 6 + Math.floor(Math.random()*6);
+let targetRound = pointerRound;
+setInterval(()=>{ if(!dragging && !success){ pointerAngle += (Math.random()-0.5)*0.5; } }, 50);
 
-async function isLocked(key) {
-    if (!redisClient) return (lockouts.get(key) || 0) > Date.now();
-    const v = await redisClient.get(`lockout:${key}`);
-    return !!v;
-}
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function resumeAudioContextOnce() { if (!audioCtx) { audioCtx = new AudioCtx(); audioCtx.resume().catch(()=>{}); } }
+function playBeep() { resumeAudioContextOnce(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = 880; gain.gain.value = 0.15; osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime; osc.start(now); osc.stop(now + 0.2); }
 
-function debugLog(title, data) { if (!ENABLE_DEBUG_LOGGING) return; console.log('\n=== ' + title + ' ==='); console.dir(data, { depth: null, colors: true }); console.log('='.repeat(40) + '\n'); }
-
-function generateHMAC(data) { return crypto.createHmac('sha256', CONFIG.SECRET_KEY).update(JSON.stringify(data)).digest('base64'); }
-function verifyHMAC(data, signature) { return generateHMAC(data) === signature; }
-
+function normalizeAngle(angle) { angle = angle % 360; if (angle > 180) angle -= 360; if (angle <= -180) angle += 360; return angle; }
+function angleDiffAbs(a, b) { a = normalizeAngle(a); b = normalizeAngle(b); return Math.abs(a - b); }
 function computeTargetAngle(seed) { const array = new Uint8Array(32); for (let i = 0; i < seed.toString().length; i++) array[i] = seed.toString().charCodeAt(i); const hashArray = new Uint32Array(array.buffer); return hashArray[0] % 360; }
-function normalizeAngle(angle) { angle = angle % 360; if (angle < 0) angle += 360; return angle % 180; }
-function angleDiffAbs(a, b) { a = normalizeAngle(a); b = normalizeAngle(b); const diff = Math.abs(a - b); return Math.min(diff, 180 - diff); }
 
-app.post('/api/v1/challenge', (req, res) => {
+let flashAlpha = 0;
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#f3f4f6';
+  ctx.beginPath();
+  ctx.arc(W/2,H/2,R,0,Math.PI*2);
+  ctx.fill();
+
+  if(flashAlpha>0){ ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`; ctx.beginPath(); ctx.arc(W/2,H/2,R,0,Math.PI*2); ctx.fill(); }
+
+  ctx.save(); ctx.translate(W/2,H/2);
+    if (challengeData) { const targetAngle = normalizeAngle(challengeData._targetAngle); ctx.save(); ctx.rotate(targetAngle * Math.PI / 180); ctx.fillStyle = targetColor; roundRect(ctx, -90, -7, 180, 14, targetRound); ctx.restore(); }
+    const normalizedPointer = normalizeAngle(pointerAngle); ctx.save(); ctx.rotate(normalizedPointer * Math.PI / 180); ctx.fillStyle = pointerColor; roundRect(ctx, -90, -7, 180, 14, pointerRound); ctx.restore();
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+function roundRect(ctx, x, y, w, h, r) { const rad = Math.max(0, r); ctx.beginPath(); ctx.moveTo(x + rad, y); ctx.lineTo(x + w - rad, y); ctx.quadraticCurveTo(x + w, y, x + w, y + rad); ctx.lineTo(x + w, y + h - rad); ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h); ctx.lineTo(x + rad, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - rad); ctx.lineTo(x, y + rad); ctx.quadraticCurveTo(x, y, x + rad, y); ctx.closePath(); ctx.fill(); }
+
+let noiseState = null;
+function compileShader(gl, src, type) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('Shader compile error:', gl.getShaderInfoLog(s)); return null; } return s; }
+
+function initNoiseOverlay() {
+    const ncanvas = document.getElementById('noise');
     try {
-        const { client_id, fingerprint_hash } = req.body || {};
-        if (client_id && typeof client_id !== 'string') return res.status(400).json({ ok: false, message: 'client_id must be a string' });
-        if (!fingerprint_hash || typeof fingerprint_hash !== 'string') return res.status(400).json({ ok: false, message: 'fingerprint_hash required' });
+        const gl = ncanvas.getContext('webgl');
+        if (!gl) return console.warn('WebGL not available for noise overlay');
+        const vsSrc = 'attribute vec2 a; void main(){ gl_Position = vec4(a,0.0,1.0); }';
+        const fsSrc = `precision mediump float; uniform float t; uniform float seed; uniform float targetAngle; uniform vec2 resolution; float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)) + seed) * 43758.5453123); } float noise(vec2 p){ float n = 0.0; float amp = 0.5; for(int i=0;i<5;i++){ float f = pow(2.0, float(i)); n += amp * fract(sin(dot(p * f, vec2(12.9898,78.233)) + seed + t*0.1) * 43758.5453); amp *= 0.5; } return n; } float dither(vec2 uv){ vec2 q = floor(uv * resolution / 4.0); return fract(sin(dot(q, vec2(12.9898,78.233))) * 43758.5453); } float angularCue(vec2 uv){ vec2 center = resolution * 0.5; vec2 p = (uv * resolution - center) / min(resolution.x, resolution.y); float r = length(p); float ang = atan(p.y, p.x); float deg = degrees(ang); float tgt = mod(targetAngle + 180.0, 360.0) - 180.0; float diff = abs(mod(deg - tgt + 180.0, 360.0) - 180.0); float band = smoothstep(0.015, 0.003, diff * (1.0 + 6.0 * smoothstep(0.4,0.6,r))); float ring = smoothstep(0.5, 0.48, r) - smoothstep(0.6, 0.62, r); return band * ring * 0.9; } void main(){ vec2 uv = gl_FragCoord.xy / resolution.xy; float n = noise(uv * 20.0); n += 0.5 * noise(uv * 60.0); n = clamp(n*0.6, 0.0, 1.0); vec3 col = vec3(n); float hueShift = fract(sin(seed * 12.9898 + t * 0.02) * 43758.5453) * 0.15 - 0.075; col.r = clamp(col.r + hueShift * 0.8, 0.0, 1.0); float cue = angularCue(uv); col = mix(col, vec3(1.0, 0.85, 0.6), cue * 0.35); float d = dither(uv * resolution.xy); col = floor(col * 16.0 + d) / 16.0; gl_FragColor = vec4(col, 1.0); }`;
+        const vs = compileShader(gl, vsSrc, gl.VERTEX_SHADER);
+        const fs = compileShader(gl, fsSrc, gl.FRAGMENT_SHADER);
+        if (!vs || !fs) return;
+        const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('Program link error', gl.getProgramInfoLog(prog)); return; }
+        gl.useProgram(prog);
+        const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+        const tLoc = gl.getUniformLocation(prog, 't');
+        const seedLoc = gl.getUniformLocation(prog, 'seed');
+        const targetLoc = gl.getUniformLocation(prog, 'targetAngle');
+        const resLoc = gl.getUniformLocation(prog, 'resolution');
+        gl.viewport(0,0,ncanvas.width,ncanvas.height); gl.uniform2f(resLoc, ncanvas.width, ncanvas.height);
+        noiseState = { gl, prog, tLoc, seedLoc, targetLoc, resLoc, seed: Math.random() * 1000, targetAngle: 0 };
+        function render(t) { if (!noiseState) return; const g = noiseState.gl; g.useProgram(noiseState.prog); g.uniform1f(noiseState.tLoc, t * 0.001); g.uniform1f(noiseState.seedLoc, noiseState.seed || 0.0); g.uniform1f(noiseState.targetLoc, noiseState.targetAngle || 0.0); g.drawArrays(g.TRIANGLE_STRIP, 0, 4); requestAnimationFrame(render); }
+        requestAnimationFrame(render);
+    } catch (e) { console.warn('Noise overlay init failed', e); }
+}
 
-        const nonce = uuidv4();
-        const seed = crypto.randomInt(0, 2147483647);
-        const targetAngle = computeTargetAngle(seed);
-        const issuedAt = Math.floor(Date.now() / 1000);
-        const expiresAt = issuedAt + CONFIG.CHALLENGE_TTL;
+function updateNoiseParams(seed, targetAngle) { if (!noiseState) return; const s = typeof seed === 'number' ? seed : (typeof seed === 'string' ? seed.split('').reduce((a,c)=>a + c.charCodeAt(0), 0) : Math.random()*1000); noiseState.seed = s; noiseState.targetAngle = ((typeof targetAngle === 'number') ? targetAngle : 0); }
 
-        const challengeBlob = { nonce, seed, pow_difficulty: CONFIG.DEFAULT_POW_DIFFICULTY, tolerance: CONFIG.RISK_LEVELS.LOW.tolerance, issued_at: issuedAt, expires_at: expiresAt };
-        const sig = generateHMAC(challengeBlob);
-        challenges.set(nonce, { targetAngle, used: false, expiresAt, fingerprint_hash });
-        setTimeout(() => challenges.delete(nonce), CONFIG.CHALLENGE_TTL * 1000);
+initNoiseOverlay();
 
-        return res.json({ challenge: Buffer.from(JSON.stringify(challengeBlob)).toString('base64'), sig });
+canvas.addEventListener('pointerdown', e => { resumeAudioContextOnce(); dragging = true; pointerId = e.pointerId; startX = e.clientX; startAngle = pointerAngle; moveHistory = []; lastMoveTime = performance.now(); recordEvent('pointerdown', { x: e.clientX, y: e.clientY }); });
+
+canvas.addEventListener('pointermove', e => { if (!dragging || e.pointerId !== pointerId) return; const now = performance.now(); const rect = canvas.getBoundingClientRect(); const dx = e.clientX - startX; pointerAngle = startAngle + dx/3; moveHistory.push({ x: e.clientX - rect.left, y: e.clientY - rect.top, timestamp: now, pressure: e.pressure || 0, angle: pointerAngle, speed: lastMoveTime ? Math.sqrt(Math.pow(e.movementX || 0, 2) + Math.pow(e.movementY || 0, 2)) / (now - lastMoveTime) : 0, dt: now - lastMoveTime }); if (moveHistory.length > 300) moveHistory.shift(); lastMoveTime = now; recordEvent('pointermove', { x: e.clientX - rect.left, y: e.clientY - rect.top, angle: pointerAngle }); });
+
+canvas.addEventListener('pointerup', e=>{ if(e.pointerId === pointerId) dragging = false; recordEvent('pointerup'); });
+
+document.addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') pointerAngle -= 2; if(e.key==='ArrowRight') pointerAngle += 2; if(e.key===' ') attemptSubmit(); if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') recordEvent('keydown', { key: e.key }); });
+
+setInterval(()=>{ const angle = Math.random()*360; const g = `repeating-linear-gradient(${angle}deg, rgba(0,0,0,0.018) 0 2px, transparent 2px 4px)`; try { cssNoise.style.backgroundImage = g; } catch(e){} recordEvent('cssNoiseRotate', { angle }); }, 300);
+
+function getRandomDuration() { return 800 + (Math.random() * 800); }
+function triggerBeep(){ beepActive = true; beepStart = performance.now(); flashAlpha = 0.6; playBeep(); status.textContent = '🔔 Align now!'; const duration = getRandomDuration(); setTimeout(()=>{ beepActive = false; flashAlpha = 0; if(!success){ status.textContent = '⏳ Waiting for next beep…'; scheduleBeep(); } }, duration); }
+function scheduleBeep(){ const delay = 2000 + Math.random()*3000; setTimeout(triggerBeep, delay); }
+
+function startRemainingTimer(ttlSeconds) { const remainingEl = document.getElementById('remaining'); let end = Date.now() + ttlSeconds * 1000; const iv = setInterval(()=>{ const sec = Math.max(0, Math.round((end - Date.now())/1000)); remainingEl.textContent = sec; if (sec <= 0) clearInterval(iv); }, 400); }
+
+async function fetchChallenge() { try { const fp = collectFingerprint(); const fpHash = await digestString(JSON.stringify(fp)); console.log('Fetching challenge with fingerprint hash:', fpHash); const res = await fetch(`${API_BASE}/challenge`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: 'browser-demo', fingerprint_hash: fpHash }) }); if (!res.ok) { throw new Error(`HTTP error! status: ${res.status}`); } const data = await res.json(); console.log('Challenge response:', data); if (!data.challenge || !data.sig) throw new Error('Invalid challenge format'); challengeData = data; const challengeBlob = JSON.parse(atob(data.challenge)); challengeData._targetAngle = computeTargetAngle(challengeBlob.seed); challengeData._challengeBlob = challengeBlob; try { updateNoiseParams(challengeBlob.seed, challengeData._targetAngle); } catch (e) {} status.textContent = 'Waiting for beep…'; try { const blob = JSON.parse(atob(data.challenge)); startRemainingTimer(blob.expires_at - blob.issued_at); } catch(e){} scheduleBeep(); } catch (err) { console.error('Challenge error:', err); status.textContent = `Failed to load challenge: ${err.message}`; } }
+
+async function digestString(str) { const enc = new TextEncoder(); const data = enc.encode(str); const hash = await crypto.subtle.digest('SHA-256', data); return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+async function computePowNonce(challengeB64, difficulty) { const maxAttempts = 200000; const prefix = '0'.repeat(Math.max(0, Math.min(8, difficulty))); for (let i = 0; i < maxAttempts; i++) { const nonce = (Math.random().toString(36).slice(2, 10) + i.toString(36)); const s = challengeB64 + ':' + nonce; const h = await digestString(s); if (h.startsWith(prefix)) return nonce; if ((i & 0xff) === 0) await new Promise(r => setTimeout(r, 0)); } throw new Error('POW not found'); }
+
+async function verifyAttempt(error, reaction) {
+  const validMoves = moveHistory.filter(m => m.timestamp >= beepStart);
+  if (validMoves.length === 0 && beepStart) {
+    validMoves.push({ x: W/2, y: H/2, timestamp: performance.now(), pressure: 1, angle: pointerAngle, speed: 1, dt: performance.now() - beepStart, keyboard: true });
+  }
+
+  const fp = collectFingerprint();
+  const fpHashPromise = digestString(JSON.stringify(fp));
+  const payload = {
+    challenge: challengeData.challenge,
+    sig: challengeData.sig,
+    user_angle: normalizeAngle(pointerAngle),
+    reaction_client_ms: Math.round(reaction),
+    movements: validMoves,
+    fingerprint: fp,
+    fingerprint_hash: await fpHashPromise,
+    timing: {
+      dragStart: beepStart,
+      dragEnd: performance.now(),
+      totalMoves: validMoves.length,
+      averageSpeed: validMoves.length ? validMoves.reduce((acc, m) => acc + (m.speed || 0), 0) / validMoves.length : null
+    }
+  };
+
+  try { payload.telemetry = telemetry.slice(-500); } catch(e) { payload.telemetry = []; }
+
+  if (challengeData._challengeBlob && challengeData._challengeBlob.pow_difficulty && challengeData._challengeBlob.pow_difficulty > 0) {
+    try {
+      status.textContent = 'Computing proof-of-work…';
+      payload.pow_nonce = await computePowNonce(challengeData.challenge, challengeData._challengeBlob.pow_difficulty);
     } catch (e) {
-        console.error('challenge error', e);
-        return res.status(500).json({ ok: false, message: 'internal error' });
+      console.error('POW computation failed:', e);
+      status.textContent = 'Unable to compute POW';
+      return;
     }
-});
+  }
 
-function validateMovements(movements, riskLevel) {
-    if (!Array.isArray(movements)) return { valid: false, confidence: 0 };
-    if (movements.length === 1 && movements[0].keyboard) return { valid: true, confidence: 0.5 };
-    if (movements.length < CONFIG.RISK_LEVELS[riskLevel].minMoves) return { valid: false, confidence: 0 };
-
-    let linearMovements = 0; const speeds = []; const accs = []; const jerks = []; const pressures = []; const intervals = [];
-    for (let i = 2; i < movements.length; i++) {
-        const p1 = movements[i-2], p2 = movements[i-1], p3 = movements[i];
-        const linearity = Math.abs((p2.y - p1.y) * (p3.x - p1.x) - (p3.y - p1.y) * (p2.x - p1.x));
-        if (linearity < CONFIG.MOVEMENT_VALIDATION.MIN_NATURAL_JITTER) linearMovements++;
-        const s = movements[i].speed || 0; speeds.push(s);
-        const dt1 = (p2.timestamp || 0) - (p1.timestamp || 0) || 1; const dt2 = (p3.timestamp || 0) - (p2.timestamp || 0) || 1;
-        const v1 = s, v0 = movements[i-1].speed || 0; const a = (v1 - v0) / (dt2/1000 || 0.001); accs.push(a);
-        const j = (a - ((v0 - (movements[i-2].speed||0)) / (dt1/1000 || 0.001))) / (dt2/1000 || 0.001); jerks.push(j);
-        pressures.push(p3.pressure || 0); intervals.push(dt2);
-    }
-    const avgSpeed = speeds.length ? speeds.reduce((a,b)=>a+b,0)/speeds.length : 0;
-    const speedVariance = speeds.length ? speeds.reduce((a,b)=>a+Math.pow(b-avgSpeed,2),0)/speeds.length : 0;
-    const accVar = accs.length ? accs.reduce((a,b)=>a+Math.pow(b-(accs.reduce((x,y)=>x+y,0)/accs.length),2),0)/accs.length : 0;
-    const jerkVar = jerks.length ? jerks.reduce((a,b)=>a+Math.pow(b-(jerks.reduce((x,y)=>x+y,0)/jerks.length),2),0)/jerks.length : 0;
-    const pressureVar = pressures.length ? pressures.reduce((a,b)=>a+Math.pow(b-(pressures.reduce((x,y)=>x+y,0)/pressures.length),2),0)/pressures.length : 0;
-    const linearRatio = movements.length ? linearMovements / movements.length : 1;
-    const valid = movements.length > 0 && (linearRatio < CONFIG.MOVEMENT_VALIDATION.MAX_LINEAR_MOVEMENTS || speedVariance > CONFIG.MOVEMENT_VALIDATION.MIN_SPEED_VARIANCE || accVar > 0.05 || jerkVar > 0.1);
-    const confidence = Math.max(0, Math.min(1, 1 - linearRatio + Math.min(1, speedVariance) * 0.3 + Math.min(1, accVar) * 0.2));
-    return { valid, confidence, stats: { avgSpeed, speedVariance, accVar, jerkVar, pressureVar, linearRatio, intervalsCount: intervals.length } };
-}
-
-function computeMovementHeuristics(movements) {
-    if (!Array.isArray(movements) || movements.length < 2) return { timestampEntropy: 0, pressureVariance: 0, constantIntervals: false };
-    const intervals = [], pressures = [];
-    for (let i = 1; i < movements.length; i++) { const dt = (movements[i].timestamp || 0) - (movements[i-1].timestamp || 0); intervals.push(dt); pressures.push(movements[i].pressure || 0); }
-    const counts = {}; for (const v of intervals) { const k = Math.round(v/16) * 16; counts[k] = (counts[k] || 0) + 1; }
-    const total = intervals.length; let entropy = 0; for (const k in counts) { const p = counts[k] / total; entropy -= p * Math.log2(p); }
-    const pressureMean = pressures.reduce((a,b)=>a+b,0)/pressures.length; const pressureVar = pressures.reduce((a,b)=>a+Math.pow(b-pressureMean,2),0)/pressures.length;
-    const buckets = Object.keys(counts).length; const constantIntervals = buckets < Math.max(2, total * 0.2);
-    return { timestampEntropy: entropy, pressureVariance: pressureVar, constantIntervals };
-}
-
-app.post('/api/v1/verify', async (req, res) => {
+  let attempts = 0; let lastErr = null;
+  while (attempts < 3) {
     try {
-        debugLog('RECEIVED VERIFICATION REQUEST', { fingerprint: req.body.fingerprint, timing: req.body.timing, movements: Array.isArray(req.body.movements) ? req.body.movements.length : req.body.movements, user_angle: req.body.user_angle, reaction_time: req.body.reaction_client_ms, ip: req.ip, headers: req.headers });
-        const { movements, fingerprint, timing, pow_nonce } = req.body || {};
-        const clientIP = req.ip;
+      console.log('Verify payload (sending):', payload);
+      const res = await fetch(`${API_BASE}/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const text = await res.text();
+      console.log('Raw verify response status:', res.status, 'text:', text);
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) { data = { ok: false, message: text }; }
 
-            if (await isLocked(clientIP)) return res.status(429).json({ ok: false, message: 'Too many failed attempts, try later' });
+      if (!res.ok) {
+        lastErr = data;
+        if (res.status >= 500) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 300 * attempts));
+          continue;
+        }
+        status.textContent = `Error: ${data.message || 'Verification failed'}`;
+        status.style.color = 'red';
+        return;
+      }
 
-            const attemptsCount = await incrRateKey(`rl:${clientIP}`, CONFIG.RATE_LIMITS.WINDOW_MS);
-            if (attemptsCount >= CONFIG.RATE_LIMITS.MAX_REQUESTS) {
-                ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1);
-                if ((ipFailures.get(clientIP) || 0) > 5) await setLockout(clientIP, 5 * 60 * 1000);
-                return res.status(429).json({ ok: false, message: 'Too many attempts' });
-            }
-
-        const riskLevel = suspiciousIPs.has(clientIP) ? 'HIGH' : (attemptsCount && attemptsCount > 50) ? 'MEDIUM' : 'LOW';
-        const fingerprint_hash = req.body.fingerprint_hash || req.body.fingerprint?.hash; if (!fingerprint_hash || typeof fingerprint_hash !== 'string') return res.status(400).json({ ok: false, message: 'fingerprint_hash required' });
-
-        const { challenge: challengeB64, sig, user_angle, reaction_client_ms } = req.body || {};
-        if (!challengeB64 || !sig || typeof user_angle !== 'number' || typeof reaction_client_ms !== 'number') return res.status(400).json({ ok: false, message: 'Missing or invalid parameters' });
-
-        if (Array.isArray(movements) && movements.length > 1000) return res.status(400).json({ ok: false, message: 'Too many movement samples' });
-        if (movements && !Array.isArray(movements)) return res.status(400).json({ ok: false, message: 'movements must be an array' });
-
-    const movementAnalysis = validateMovements(movements, riskLevel);
-    const heuristics = computeMovementHeuristics(movements || []);
-    const automationScore = ((heuristics.timestampEntropy < 2 ? 0.4 : 0) + (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + (heuristics.constantIntervals ? 0.3 : 0) + (movementAnalysis.confidence < 0.2 ? 0.3 : 0));
-    // Use a slightly higher threshold to avoid rejecting on floating-point noise or minimal input samples
-    const AUTOMATION_THRESHOLD = 0.65;
-    if (!movementAnalysis.valid || automationScore >= AUTOMATION_THRESHOLD) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); if (ipFailures.get(clientIP) > 3) suspiciousIPs.add(clientIP); return res.status(400).json({ ok: false, message: 'Verification failed', heuristics, automationScore }); }
-
-        const attempts = ipAttempts.get(clientIP) || [];
-        attempts.push(Date.now());
-        ipAttempts.set(clientIP, attempts);
-
-        let challengeBlob; try { challengeBlob = JSON.parse(Buffer.from(challengeB64, 'base64').toString()); } catch (e) { return res.status(400).json({ ok: false, message: 'Invalid challenge format' }); }
-        if (!verifyHMAC(challengeBlob, sig)) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); return res.status(400).json({ ok: false, message: 'Invalid signature' }); }
-
-        const data = challenges.get(challengeBlob.nonce); if (!data) return res.status(400).json({ ok: false, message: 'Challenge expired or missing' }); if (data.used) return res.status(400).json({ ok: false, message: 'Already used' }); if (data.fingerprint_hash && data.fingerprint_hash !== fingerprint_hash) return res.status(400).json({ ok: false, message: 'Fingerprint mismatch' });
-
-        if (challengeBlob.pow_difficulty && challengeBlob.pow_difficulty > 0) {
-            if (!pow_nonce || typeof pow_nonce !== 'string') return res.status(400).json({ ok: false, message: 'pow_nonce required' });
-            try { const hash = crypto.createHash('sha256').update(challengeB64 + ':' + pow_nonce).digest('hex'); const prefix = '0'.repeat(Math.max(0, Math.min(8, challengeBlob.pow_difficulty))); if (!hash.startsWith(prefix)) return res.status(400).json({ ok: false, message: 'Invalid proof-of-work' }); } catch (e) { return res.status(400).json({ ok: false, message: 'POW verification error' }); }
+        if (data.ok) {
+          status.textContent = 'Verified!';
+          status.style.color = 'green';
+          success = true;
+          // Prefer server-provided confidence when available; otherwise compute locally and clamp to 0..100
+          let confPct = null;
+          if (data.confidence !== undefined && data.confidence !== null) {
+            confPct = Math.max(0, Math.min(100, Number(data.confidence)));
+          } else {
+            confPct = Math.max(0, Math.min(100, Math.round((1 - (error / (challengeData.tolerance || 8))) * 100)));
+          }
+          document.getElementById('confidence').textContent = confPct + '%';
+          return;
         }
 
-        const userAngle = normalizeAngle(user_angle); const targetAngle = normalizeAngle(data.targetAngle); const error = angleDiffAbs(userAngle, targetAngle);
-    debugLog('MOVEMENT ANALYSIS', { riskLevel, totalMovements: Array.isArray(movements) ? movements.length : 0, validationResult: movementAnalysis, recentAttempts: attemptsCount });
-        const angleOk = error <= challengeBlob.tolerance; const reactionOk = reaction_client_ms >= CONFIG.MIN_REACTION_MS && reaction_client_ms <= CONFIG.MAX_REACTION_MS;
-        debugLog('ANGLE COMPARISON', { raw_user_angle: req.body.user_angle, normalized_user: userAngle, raw_target: data.targetAngle, normalized_target: targetAngle, difference: error, tolerance: challengeBlob.tolerance, angleOk, reactionOk });
-        if (!angleOk || !reactionOk) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); return res.status(400).json({ ok: false, message: 'Verification failed', debug: { error, tolerance: challengeBlob.tolerance, userAngle, targetAngle, reaction_client_ms } }); }
-
-        data.used = true; ipFailures.set(clientIP, 0);
-        const angleScore = Math.max(0, 1 - (error / challengeBlob.tolerance));
-        const confidence = Math.round(Math.max(0, Math.min(1, angleScore * 0.7 + movementAnalysis.confidence * 0.3 - automationScore * 0.2)) * 100);
-        return res.json({ ok: true, message: 'Verified successfully', confidence });
-    } catch (e) {
-        console.error('verify error', e); return res.status(500).json({ ok: false, message: 'internal error' });
+      status.textContent = `Error: ${data.message || 'Verification failed'}`;
+      status.style.color = 'red';
+      return;
+    } catch (err) {
+      lastErr = err;
+      attempts++;
+      await new Promise(r => setTimeout(r, 300 * attempts));
     }
-});
+  }
 
-app.get('/health', (req, res) => res.json({ status: 'healthy', ts: new Date() }));
-
-// respond to favicon requests to avoid noisy 404s from browsers
-app.get('/favicon.ico', (req, res) => res.sendStatus(204));
-
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || null;
-function checkAdmin(req, res) {
-    if (!ADMIN_TOKEN) return res.status(403).json({ ok: false, message: 'Admin API not enabled' });
-    const t = req.headers['x-admin-token'] || req.query.token;
-    if (!t || t !== ADMIN_TOKEN) return res.status(401).json({ ok: false, message: 'Unauthorized' });
-    return null;
+  console.error('Verification error after retries:', lastErr);
+  status.textContent = 'Network or server error. Try again later.';
+  status.style.color = 'red';
 }
 
-app.get('/admin/ips', (req, res) => {
-    const err = checkAdmin(req, res); if (err) return;
-    const list = Array.from(suspiciousIPs.values ? suspiciousIPs.values() : suspiciousIPs);
-    return res.json({ ok: true, suspicious: list });
-});
+function attemptSubmit() { if(!beepActive) { status.textContent = 'Too early! Wait for the beep.'; return; } if(!challengeData) { status.textContent = 'Challenge not loaded'; return; } const normalizedPointer = normalizeAngle(pointerAngle); const normalizedTarget = normalizeAngle(challengeData._targetAngle); const error = angleDiffAbs(normalizedPointer, normalizedTarget); const reaction = performance.now() - beepStart; verifyAttempt(error, reaction); }
 
-app.post('/admin/ips/clear', (req, res) => {
-    const err = checkAdmin(req, res); if (err) return;
-    suspiciousIPs.clear();
-    return res.json({ ok: true, message: 'cleared' });
-});
+submitBtn.addEventListener('click', attemptSubmit);
 
-app.listen(CONFIG.PORT, () => console.log(`Server running on http://localhost:${CONFIG.PORT}`));
+function collectFingerprint() { return { screen: { width: screen.width, height: screen.height, colorDepth: screen.colorDepth, orientation: screen.orientation?.type }, browser: { userAgent: navigator.userAgent, language: navigator.language, languages: navigator.languages, platform: navigator.platform, hardwareConcurrency: navigator.hardwareConcurrency, deviceMemory: navigator.deviceMemory, maxTouchPoints: navigator.maxTouchPoints }, capabilities: { touch: 'ontouchstart' in window, webgl: !!document.createElement('canvas').getContext('webgl'), canvas: !!document.createElement('canvas').getContext('2d'), audio: !!window.AudioContext || !!window.webkitAudioContext }, automation: { webdriver: !!navigator.webdriver, selenium: !!window.selenium, headless: !window.chrome || !!window.chrome.webstore } }; }
+
+draw();
+fetchChallenge();
+})();
+</script>
+</body>
+</html>
