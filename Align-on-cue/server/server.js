@@ -7,10 +7,10 @@ app.use(express.json());
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:8080', 'http://localhost:3000'];
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) res.header('Access-Control-Allow-Origin', origin);
-    else res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    // Always allow all origins for this demo application
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Token');
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
@@ -214,8 +214,13 @@ app.post('/api/v1/verify', async (req, res) => {
         if (!angleOk || !reactionOk) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); return res.status(400).json({ ok: false, message: 'Verification failed', debug: { error, tolerance: challengeBlob.tolerance, userAngle, targetAngle, reaction_client_ms } }); }
 
         data.used = true; ipFailures.set(clientIP, 0);
-        const angleScore = Math.max(0, 1 - (error / challengeBlob.tolerance));
-        const confidence = Math.round(Math.max(0, Math.min(1, angleScore * 0.7 + movementAnalysis.confidence * 0.3 - automationScore * 0.2)) * 100);
+        const angleScore = Math.max(0, 1 - (error / (challengeBlob.tolerance * 4)));
+         // Ensure each component is positive before combining them
+         const positiveAngleComponent = Math.max(0, angleScore * 0.7);
+         const positiveMovementComponent = Math.max(0, movementAnalysis.confidence * 0.3);
+         const automationPenalty = Math.min(positiveAngleComponent + positiveMovementComponent, automationScore * 0.2);
+         // Calculate final confidence ensuring it's between 0-100
+         const confidence = Math.round(Math.max(0, positiveAngleComponent + positiveMovementComponent - automationPenalty) * 100);
         return res.json({ ok: true, message: 'Verified successfully', confidence });
     } catch (e) {
         console.error('verify error', e); return res.status(500).json({ ok: false, message: 'internal error' });
