@@ -127,16 +127,7 @@ Open: http://localhost:8080/align_on_cue.html
 - WebGL unavailable: the client falls back to a CSS noise overlay, but obfuscation is weaker. Use a modern browser with WebGL for best effect.
 - Verification always fails: check server logs for signature/POW errors. Ensure `CAPTCHA_SECRET` is identical between server restarts and that the client includes fingerprint_hash when requesting a challenge.
 
-## Production notes
 
-- Serve behind HTTPS and keep `CAPTCHA_SECRET` secret and rotated as needed.
-- Use Redis (`REDIS_URL`) in production to persist counters/lockouts across multiple server instances.
-- Collect telemetry carefully and respect privacy best practices — sanitize or truncate before storing long-term.
-
-## Roadmap / improvements
-
-- Persist suspicious IPs and counters to Redis so they survive restarts
-- Add an admin UI to view flagged IPs and tune thresholds
-- Add server-side telemetry ingestion + a basic classifier to reduce false positives
 - Provide a `docker-compose.yml` to start server + redis + static server
+
 
