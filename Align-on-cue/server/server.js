@@ -186,10 +186,12 @@ app.post('/api/v1/verify', async (req, res) => {
         if (Array.isArray(movements) && movements.length > 1000) return res.status(400).json({ ok: false, message: 'Too many movement samples' });
         if (movements && !Array.isArray(movements)) return res.status(400).json({ ok: false, message: 'movements must be an array' });
 
-        const movementAnalysis = validateMovements(movements, riskLevel);
-        const heuristics = computeMovementHeuristics(movements || []);
-        const automationScore = ((heuristics.timestampEntropy < 2 ? 0.4 : 0) + (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + (heuristics.constantIntervals ? 0.3 : 0) + (movementAnalysis.confidence < 0.2 ? 0.3 : 0));
-        if (!movementAnalysis.valid || automationScore > 0.6) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); if (ipFailures.get(clientIP) > 3) suspiciousIPs.add(clientIP); return res.status(400).json({ ok: false, message: 'Verification failed', heuristics, automationScore }); }
+    const movementAnalysis = validateMovements(movements, riskLevel);
+    const heuristics = computeMovementHeuristics(movements || []);
+    const automationScore = ((heuristics.timestampEntropy < 2 ? 0.4 : 0) + (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + (heuristics.constantIntervals ? 0.3 : 0) + (movementAnalysis.confidence < 0.2 ? 0.3 : 0));
+    // Use a slightly higher threshold to avoid rejecting on floating-point noise or minimal input samples
+    const AUTOMATION_THRESHOLD = 0.65;
+    if (!movementAnalysis.valid || automationScore >= AUTOMATION_THRESHOLD) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); if (ipFailures.get(clientIP) > 3) suspiciousIPs.add(clientIP); return res.status(400).json({ ok: false, message: 'Verification failed', heuristics, automationScore }); }
 
         const attempts = ipAttempts.get(clientIP) || [];
         attempts.push(Date.now());
@@ -221,6 +223,9 @@ app.post('/api/v1/verify', async (req, res) => {
 });
 
 app.get('/health', (req, res) => res.json({ status: 'healthy', ts: new Date() }));
+
+// respond to favicon requests to avoid noisy 404s from browsers
+app.get('/favicon.ico', (req, res) => res.sendStatus(204));
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || null;
 function checkAdmin(req, res) {
