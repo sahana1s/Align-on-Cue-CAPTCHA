@@ -1,4 +1,4 @@
-# 🎯 Align-on-Cue CAPTCHA v1.2# 🎯 Align-on-Cue CAPTCHA v1.2
+# 🎯 Align-on-Cue CAPTCHA v1.2# 🎯 Align-on-Cue CAPTCHA v1.2# 🎯 Align-on-Cue CAPTCHA v1.2
 
 
 
@@ -14,7 +14,7 @@
 
 
 
-## 🚀 30-Second Quick Start> **Status:** Production Ready ✅ | **Version:** 1.2.0 | **Last Updated:** October 16, 2025**A modern, secure, and user-friendly human verification system hardened against automation tools.**Branch: `updated` — this branch contains the integrated hardening and feature work (server- and client-side anti-automation defenses). It includes HMAC-signed single-use challenges, optional proof-of-work (POW), movement telemetry and heuristics, WebGL/CSS obfuscation, Redis scaffolding for rate-limiting, and admin endpoints. Use this branch for development and local testing of the hardened implementation.
+## 🚀 30-Second Quick Start> **Status:** Production Ready ✅ | **Version:** 1.2.0 | **Last Updated:** October 16, 2025**A modern, secure, and user-friendly human verification system hardened against automation tools.**
 
 
 
@@ -30,7 +30,7 @@ cd Align-on-cue---
 
 npm install
 
-cd server && npm install## 🚀 30-Second Quick Start---
+cd server && npm install## 🚀 30-Second Quick Start> **Status:** Production Ready ✅ | **Version:** 1.2.0 | **Last Updated:** October 16, 2025**A modern, secure, and user-friendly human verification system hardened against automation tools.**Branch: `updated` — this branch contains the integrated hardening and feature work (server- and client-side anti-automation defenses). It includes HMAC-signed single-use challenges, optional proof-of-work (POW), movement telemetry and heuristics, WebGL/CSS obfuscation, Redis scaffolding for rate-limiting, and admin endpoints. Use this branch for development and local testing of the hardened implementation.
 
 cd ../client && npm install
 
@@ -38,7 +38,7 @@ cd ../client && npm install
 
 # 3. Start server (Terminal 1)
 
-cd server```bashThe goal is defense-in-depth: combine client-side obfuscation and telemetry with server-side signed challenges, rate-limiting, optional proof-of-work (POW), and movement heuristics to make automated attacks (OpenCV template matching, headless browsers, scripted input) harder to execute reliably.
+cd server```bash
 
 $env:DEBUG='1'
 
@@ -46,7 +46,7 @@ $env:POW_DIFFICULTY='0'# 1. Navigate to project
 
 $env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'
 
-node server.jscd Align-on-cue## 📌 Quick Start
+node server.jscd Align-on-cue---
 
 
 
@@ -54,7 +54,7 @@ node server.jscd Align-on-cue## 📌 Quick Start
 
 cd Align-on-cue/client
 
-npx http-server . -p 8080 -c-1# 2. Install dependencies (3 commands)## Features
+npx http-server . -p 8080 -c-1# 2. Install dependencies
 
 
 
@@ -62,7 +62,7 @@ npx http-server . -p 8080 -c-1# 2. Install dependencies (3 commands)## Features
 
 # http://localhost:8080/align_on_cue.html
 
-```cd server && npm install### Prerequisites
+```cd server && npm install## 🚀 30-Second Quick Start---
 
 
 
@@ -70,231 +70,319 @@ npx http-server . -p 8080 -c-1# 2. Install dependencies (3 commands)## Features
 
 
 
----- Node.js 18+ (recommended 20+)- HMAC-signed single-use challenges with TTL
+---
 
 
 
-## 🖥️ How to Run Server (Detailed)# 3. Start server (Terminal 1)
+## 📋 Overview# 3. Start server (Terminal 1)
 
 
 
-### Format with Environment Variables (PowerShell)cd server && node server.js- npm (bundled with Node.js)- Client fingerprint binding (challenge requested per fingerprint hash)
+**Branch:** `updated` — contains integrated hardening and feature work (server- and client-side anti-automation defenses). Includes HMAC-signed single-use challenges, optional proof-of-work (POW), movement telemetry and heuristics, WebGL/CSS obfuscation, Redis scaffolding for rate-limiting, and admin endpoints.cd server```bashThe goal is defense-in-depth: combine client-side obfuscation and telemetry with server-side signed challenges, rate-limiting, optional proof-of-work (POW), and movement heuristics to make automated attacks (OpenCV template matching, headless browsers, scripted input) harder to execute reliably.
 
 
 
-```powershell
+### Key Features$env:DEBUG='1'
 
-cd C:\Users\<your-username>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server
 
-# 4. Start client (Terminal 2)- Optional: Docker (for Redis)- Movement telemetry capture (pointer timestamps, x/y, pressure) and heuristic checks (speed/accel/jerk, timestamp entropy, pressure variance)
+
+- ✅ **HMAC-signed single-use challenges** with TTL (time-to-live)$env:POW_DIFFICULTY='0'# 1. Navigate to project
+
+- ✅ **Client fingerprint binding** — challenge requested per fingerprint hash
+
+- ✅ **Movement telemetry** — pointer timestamps, x/y coordinates, pressure, and heuristic checks (speed/acceleration/jerk, timestamp entropy, pressure variance)$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'
+
+- ✅ **Optional Proof-of-Work (POW)** — adds CPU cost for automated clients (difficulty 0-8)
+
+- ✅ **WebGL noise overlay + CSS rotating noise** — frustrates CV/template attacksnode server.jscd Align-on-cue## 📌 Quick Start
+
+- ✅ **Redis-aware rate-limiting** — with in-memory fallback for single-node runs
+
+- ✅ **Admin endpoints** — protected with `ADMIN_TOKEN`
+
+- ✅ **Dark mode** — smooth 0.8s transitions between light and dark themes
+
+- ✅ **WCAG 2.1 AA accessibility** — keyboard navigation, screen reader support, high-contrast mode# 4. Start client (Terminal 2)
+
+- ✅ **Interactive tutorial** — 5-step guided walkthrough
+
+- ✅ **Settings panel** — toggleable dark mode, animations, high-contrast, large textcd Align-on-cue/client
+
+
+
+---npx http-server . -p 8080 -c-1# 2. Install dependencies (3 commands)## Features
+
+
+
+## 📚 Complete Setup Guide
+
+
+
+### Prerequisites# 5. Open browsernpm install
+
+
+
+- **Node.js 18+** (recommended 20+) — [Download](https://nodejs.org/)# http://localhost:8080/align_on_cue.html
+
+- **npm** (bundled with Node.js)
+
+- **Optional:** Docker (for Redis) — [Download](https://www.docker.com/)```cd server && npm install### Prerequisites
+
+
+
+### Repo Layout
+
+
+
+```**That's it!** The CAPTCHA will work with built-in defaults. ✨cd ../client && npm install
+
+Align-on-Cue-CAPTCHA/
+
+├── README.md                                    # This file
+
+├── Align-on-cue/
+
+│   ├── package.json---- Node.js 18+ (recommended 20+)- HMAC-signed single-use challenges with TTL
+
+│   ├── client/
+
+│   │   └── align_on_cue.html                   # Single-file client UI, WebGL, telemetry
+
+│   ├── server/
+
+│   │   ├── package.json## 🖥️ How to Run Server (Detailed)# 3. Start server (Terminal 1)
+
+│   │   ├── server.js                           # Express server (challenges, verification)
+
+│   │   └── docker/                             # Docker Compose for Redis
+
+│   └── .env                                    # Example environment variables
+
+```### Format with Environment Variables (PowerShell)cd server && node server.js- npm (bundled with Node.js)- Client fingerprint binding (challenge requested per fingerprint hash)
+
+
+
+### Step 1: Clone & Install Dependencies
+
+
+
+```bash```powershell
+
+# Navigate to the project
+
+cd Align-on-Cue-CAPTCHA/Align-on-cuecd C:\Users\<your-username>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server
+
+
+
+# Install root dependencies# 4. Start client (Terminal 2)- Optional: Docker (for Redis)- Movement telemetry capture (pointer timestamps, x/y, pressure) and heuristic checks (speed/accel/jerk, timestamp entropy, pressure variance)
+
+npm install
 
 # Set environment variables
 
-$env:DEBUG='1'cd client && npx http-server . -p 8080 -c-1
+# Install server dependencies
+
+cd server$env:DEBUG='1'cd client && npx http-server . -p 8080 -c-1
+
+npm install
 
 $env:POW_DIFFICULTY='0'
 
-$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'- Optional Proof-of-Work (POW) to add CPU cost for automated clients
+# Install client dependencies (if needed)
 
+cd ../client$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'- Optional Proof-of-Work (POW) to add CPU cost for automated clients
 
-
-# Start server# 5. Open browser
-
-node server.js
-
-# http://localhost:8080/align_on_cue.html### Installation & Running- WebGL noise overlay + CSS rotating noise + encoded angular cue to frustrate CV/template attacks
-
-# Expected output:
-
-# Server running on http://localhost:3000```
+npm install
 
 ```
 
-- Redis-aware rate-limiting and lockouts with in-memory fallback for single-node runs
+
+
+### Step 2: Generate or Configure CAPTCHA_SECRET# Start server# 5. Open browser
+
+
+
+Your CAPTCHA needs a secure 64-character hex key for HMAC signing. Choose one method:node server.js
+
+
+
+#### Method 1: PowerShell (Windows)# http://localhost:8080/align_on_cue.html### Installation & Running- WebGL noise overlay + CSS rotating noise + encoded angular cue to frustrate CV/template attacks
+
+
+
+```powershell# Expected output:
+
+# Generate 32 random bytes and convert to hex
+
+$bytes = [byte[]]::new(32)# Server running on http://localhost:3000```
+
+$rng = [System.Security.Cryptography.RNGCryptoServiceProvider]::new()
+
+$rng.GetBytes($bytes)```
+
+$secret = ($bytes | ForEach-Object { "{0:x2}" -f $_ }) -join ""
+
+Write-Host "Your CAPTCHA_SECRET: $secret"- Redis-aware rate-limiting and lockouts with in-memory fallback for single-node runs
+
+```
 
 ### Format with Environment Variables (Linux/Mac Bash)
+
+#### Method 2: Node.js (All Platforms)
 
 **That's it!** The CAPTCHA will work with built-in defaults. ✨
 
 ```bash
 
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"```bash
+
+```
+
 cd ~/Align-on-Cue-CAPTCHA/Align-on-cue/server```bash- Admin endpoints protected with an `ADMIN_TOKEN`
 
+#### Method 3: OpenSSL (Linux/Mac)
 
 
-# Set environment variables and start---
+
+```bash
+
+openssl rand -hex 32# Set environment variables and start---
+
+```
 
 DEBUG='1' POW_DIFFICULTY='0' CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f' node server.js
 
+Copy the generated secret key for use in Step 3.
+
 # 1. Navigate to the project
+
+### Step 3: Configure Environment Variables
 
 # Expected output:
 
+Create a `.env` file in `Align-on-cue/server/` or set environment variables directly.
+
 # Server running on http://localhost:3000## 📋 Complete Setup Guide
 
-```
-
-cd Align-on-cue## Repo layout
-
-### Production Format (PowerShell)
-
-### Prerequisites
-
-```powershell
-
-cd C:\Users\<your-username>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server
-
-
-
-# Set production environment- **Node.js 18+** (recommended 20+) - [Download](https://nodejs.org/)
-
-$env:DEBUG='0'
-
-$env:POW_DIFFICULTY='2'- **npm** (bundled with Node.js)# 2. Install dependencies- `Align-on-cue/client/align_on_cue.html` — single-file client UI, WebGL shader, telemetry
-
-$env:STRICT_ORIGIN='1'
-
-$env:CAPTCHA_SECRET='<your-generated-64-char-hex-secret>'- Optional: **Docker** (for Redis) - [Download](https://www.docker.com/)
-
-$env:REDIS_URL='redis://localhost:6379'
-
-$env:ADMIN_TOKEN='<your-secure-admin-token>'npm install          # root- `Align-on-cue/server/server.js` — Express server with challenge and verification endpoints
-
-
-
-# Start server### Step 1: Clone & Install
-
-node server.js
-
-```cd server && npm install- `Align-on-cue/.env` — example environment variables (local testing)
-
-
-
-### Environment Variables Breakdown```bash
-
-
-
-| Variable | Value | Purpose |# Navigate to projectcd ../client && npm install
-
-|----------|-------|---------|
-
-| `DEBUG` | `0` or `1` | Enable/disable verbose logging |cd Align-on-Cue-CAPTCHA
-
-| `POW_DIFFICULTY` | `0-8` | Proof-of-Work difficulty (0=disabled) |
-
-| `CAPTCHA_SECRET` | 64-char hex | Cryptographic signing key |cd Align-on-cue## Prerequisites
-
-| `STRICT_ORIGIN` | `0` or `1` | CORS strict checking |
-
-| `PORT` | `3000` | Server port (optional) |
-
-| `REDIS_URL` | Connection string | Redis for production (optional) |
-
-| `ADMIN_TOKEN` | Any string | Admin endpoint protection |# Install root dependencies# 3. Set environment variables (PowerShell)
-
-
-
----npm install
-
-
-
-## 📋 Complete Setup Guide$env:DEBUG='1'- Node.js 18+ (Node 20 recommended)
-
-
-
-### Prerequisites# Install server dependencies
-
-
-
-- **Node.js 18+** (recommended 20+) - [Download](https://nodejs.org/)cd server$env:POW_DIFFICULTY='0'- npm (bundled with Node)
-
-- **npm** (bundled with Node.js)
-
-- Optional: **Docker** (for Redis)npm install
-
-
-
-### Step 1: Install Dependenciescd ..$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'- (Optional) Docker (for running Redis locally)
-
-
-
-```bash
-
-cd Align-on-Cue-CAPTCHA/Align-on-cue
-
-# Install client dependencies
-
-# Install root dependencies
-
-npm installcd client
-
-
-
-# Install server dependenciesnpm install# 4. Start backend (port 3000)## Environment (.env)
-
-cd server
-
-npm installcd ..
-
-cd ..
-
-```cd server && node server.js
-
-# Install client dependencies
-
-cd client
-
-npm install
-
-cd ..### Step 2: Configure Environment (Optional for Development)Create a `.env` in `Align-on-cue/server` (or set environment variables in your shell). Example values (replace placeholders):
+**File-based (.env):**
 
 ```
 
+```
+
+DEBUG=1cd Align-on-cue## Repo layout
+
+POW_DIFFICULTY=0
+
+CAPTCHA_SECRET=<your-64-char-hex-key-from-step-2>### Production Format (PowerShell)
+
+PORT=3000
+
+STRICT_ORIGIN=0### Prerequisites
+
+ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+
+REDIS_URL=```powershell
+
+ADMIN_TOKEN=admin-secret-key
+
+```cd C:\Users\<your-username>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server
 
 
-### Step 2: Run Server (Development Mode)
 
-By default, the CAPTCHA works **without any configuration**. For customization, create a `.env` file:# 5. Start frontend (in another terminal, port 8080)
+**Or set via PowerShell:**
 
-**PowerShell (Windows):**
 
-```powershell
 
-cd server
-
-```bashcd client && npx http-server . -p 8080 -c-1```text
+```powershell# Set production environment- **Node.js 18+** (recommended 20+) - [Download](https://nodejs.org/)
 
 $env:DEBUG='1'
 
-$env:POW_DIFFICULTY='0'# Navigate to server folder
+$env:POW_DIFFICULTY='0'$env:DEBUG='0'
 
-$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'
+$env:CAPTCHA_SECRET='<your-secret-from-step-2>'
 
-cd serverCAPTCHA_SECRET=REPLACE_WITH_STRONG_RANDOM_64_HEX
+$env:PORT='3000'$env:POW_DIFFICULTY='2'- **npm** (bundled with Node.js)# 2. Install dependencies- `Align-on-cue/client/align_on_cue.html` — single-file client UI, WebGL shader, telemetry
 
-node server.js
+$env:STRICT_ORIGIN='0'
+
+$env:ADMIN_TOKEN='admin-secret-key'$env:STRICT_ORIGIN='1'
 
 ```
 
+$env:CAPTCHA_SECRET='<your-generated-64-char-hex-secret>'- Optional: **Docker** (for Redis) - [Download](https://www.docker.com/)
 
+**Or set via Bash:**
 
-**Bash (Linux/Mac):**# Create .env file (use PowerShell on Windows)# 6. Open in browserPORT=3000
+$env:REDIS_URL='redis://localhost:6379'
 
 ```bash
 
-cd serverecho "" | Out-File -FilePath .env -Encoding UTF8
+export DEBUG='1'$env:ADMIN_TOKEN='<your-secure-admin-token>'npm install          # root- `Align-on-cue/server/server.js` — Express server with challenge and verification endpoints
+
+export POW_DIFFICULTY='0'
+
+export CAPTCHA_SECRET='<your-secret-from-step-2>'
+
+export PORT='3000'
+
+export STRICT_ORIGIN='0'# Start server### Step 1: Clone & Install
+
+export ADMIN_TOKEN='admin-secret-key'
+
+```node server.js
 
 
 
-DEBUG='1' POW_DIFFICULTY='0' CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f' node server.js```# http://localhost:8080/align_on_cue.htmlALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
-
-```
+### Step 4: Start the Server```cd server && npm install- `Align-on-cue/.env` — example environment variables (local testing)
 
 
 
-**Expected Output:**
+**PowerShell (Windows):**
 
-```**Edit `.env` with these settings:**```STRICT_ORIGIN=false
+
+
+```powershell### Environment Variables Breakdown```bash
+
+cd Align-on-cue\server
+
+
+
+$env:DEBUG='1'
+
+$env:POW_DIFFICULTY='0'| Variable | Value | Purpose |# Navigate to projectcd ../client && npm install
+
+$env:CAPTCHA_SECRET='<your-secret>'
+
+|----------|-------|---------|
+
+node server.js
+
+```| `DEBUG` | `0` or `1` | Enable/disable verbose logging |cd Align-on-Cue-CAPTCHA
+
+
+
+**Bash (Linux/Mac):**| `POW_DIFFICULTY` | `0-8` | Proof-of-Work difficulty (0=disabled) |
+
+
+
+```bash| `CAPTCHA_SECRET` | 64-char hex | Cryptographic signing key |cd Align-on-cue## Prerequisites
+
+cd Align-on-cue/server
+
+| `STRICT_ORIGIN` | `0` or `1` | CORS strict checking |
+
+DEBUG='1' POW_DIFFICULTY='0' CAPTCHA_SECRET='<your-secret>' node server.js
+
+```| `PORT` | `3000` | Server port (optional) |
+
+
+
+**Expected output:**| `REDIS_URL` | Connection string | Redis for production (optional) |
+
+
+
+```| `ADMIN_TOKEN` | Any string | Admin endpoint protection |# Install root dependencies# 3. Set environment variables (PowerShell)
 
 Server running on http://localhost:3000
 
@@ -302,297 +390,805 @@ Server running on http://localhost:3000
 
 
 
-### Step 3: Run Client (in another terminal)```bashREDIS_URL=redis://localhost:6379   # optional
+### Step 5: Start the Client---npm install
 
 
 
-```bash# ============================================
+Open a **second terminal** and run:
+
+
+
+```bash## 📋 Complete Setup Guide$env:DEBUG='1'- Node.js 18+ (Node 20 recommended)
 
 cd Align-on-cue/client
 
-# CORE CONFIGURATION---POW_DIFFICULTY=1                   # integer 0..8, 0 disables POW
-
 npx http-server . -p 8080 -c-1
 
-```# ============================================
+```
+
+### Prerequisites# Install server dependencies
+
+**Expected output:**
 
 
-
-**Expected Output:**PORT=3000ADMIN_TOKEN=replace-with-admin-token
 
 ```
 
-Starting up http-server, serving .ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
-
-Available on: http://127.0.0.1:8080
-
-```STRICT_ORIGIN=0                        # Set to 1 for production## ✨ v1.2 FeaturesCHALLENGE_TTL_MS=60000             # challenge expiry in ms
-
-
-
-### Step 4: Test the CAPTCHADEBUG=1                                # Set to 0 for production
-
-
-
-Open your browser:RATE_LIMIT_WINDOW_MS=60000
+Starting up http-server, serving ./- **Node.js 18+** (recommended 20+) - [Download](https://nodejs.org/)cd server$env:POW_DIFFICULTY='0'- npm (bundled with Node)
 
 ```
 
-http://localhost:8080/align_on_cue.html# ============================================
+- **npm** (bundled with Node.js)
+
+### Step 6: Test the CAPTCHA
+
+- Optional: **Docker** (for Redis)npm install
+
+Open your browser and navigate to:
+
+
 
 ```
 
-# CAPTCHA SECRET (Required for Production)### 🎨 Enhanced User ExperienceRATE_LIMIT_MAX=30
+http://localhost:8080/align_on_cue.html### Step 1: Install Dependenciescd ..$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'- (Optional) Docker (for running Redis locally)
+
+```
+
+
+
+You should see:
+
+- Interactive CAPTCHA canvas with colored points```bash
+
+- Settings panel (top-right, gear icon)
+
+- Dark mode toggle (Settings → Toggle dark mode)cd Align-on-Cue-CAPTCHA/Align-on-cue
+
+- Tutorial button (top-left, question mark)
+
+# Install client dependencies
 
 ---
 
-# ============================================
+# Install root dependencies
 
-## 🔑 Secret Key Management
+## 🔧 Environment Variables Reference
 
-# Generate using PowerShell:```
+npm installcd client
 
-### Generating CAPTCHA_SECRET
+| Variable | Default | Options | Purpose |
 
-#   [System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+|----------|---------|---------|---------|
 
-**PowerShell (Windows):**
+| `DEBUG` | `0` | `0`, `1` | Enable verbose server logging |
 
-```powershell##### Interactive Tutorial
+| `POW_DIFFICULTY` | `0` | `0-8` | Proof-of-Work difficulty (0 = disabled) |# Install server dependenciesnpm install# 4. Start backend (port 3000)## Environment (.env)
 
-[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+| `CAPTCHA_SECRET` | Required | 64-char hex | HMAC signing key — **MUST BE SET** |
 
-```# Or using Node.js (cross-platform):
+| `PORT` | `3000` | Any port | Server port |cd server
 
+| `STRICT_ORIGIN` | `0` | `0`, `1` | Enforce strict CORS origin checking |
 
+| `ALLOWED_ORIGINS` | `*` | Comma-separated URLs | CORS whitelist (e.g., `http://localhost:8080,https://example.com`) |npm installcd ..
 
-**Node.js (Cross-Platform):**#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"- 5-step guided walkthrough for first-time usersImportant notes:
+| `REDIS_URL` | Unset | Redis connection string | Optional Redis for distributed rate-limiting |
 
-```bash
+| `ADMIN_TOKEN` | `secret` | Any string | Admin endpoint authentication token |cd ..
 
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-```
 
-CAPTCHA_SECRET=d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f- Educational content about human verification- `CAPTCHA_SECRET`: required for production; use a strong random 32-byte (256-bit) secret expressed as hex. Keep it out of source control.
+---```cd server && node server.js
 
-**Copy the output and use in your `.env` or server run command.**
 
 
+## 🛠️ Proof-of-Work (POW) Configuration# Install client dependencies
 
----
 
-# ============================================- Easy to skip- `REDIS_URL`: configure to enable Redis-backed counters/lockouts (recommended for production multi-instance deployments).
 
-## ⚡ Proof-of-Work (POW) Configuration
+Proof-of-Work adds computational cost to prevent rapid automated attacks. Set `POW_DIFFICULTY` (0-8):cd client
 
-# CHALLENGE CONFIGURATION
 
-### POW_DIFFICULTY Levels
 
-# ============================================- Reduces support burden- `POW_DIFFICULTY`: lower while testing. Higher increases client CPU work.
+| Difficulty | Hash Target | Use Case | Typical Time |npm install
 
-| Level | CPU Cost | Use Case |
+|------------|-------------|----------|--------------|
 
-|-------|----------|----------|CHALLENGE_TTL_MS=90000              # Challenge expires in 90 seconds
+| `0` | Disabled | Development, testing | — |cd ..### Step 2: Configure Environment (Optional for Development)Create a `.env` in `Align-on-cue/server` (or set environment variables in your shell). Example values (replace placeholders):
 
-| 0 | None | Development |
+| `1` | Leading 4 bits | Minimal security overhead | ~50ms |
 
-| 1 | ~50ms | Light |RATE_LIMIT_WINDOW_MS=900000         # 15-minute window (900,000ms)
+| `2` | Leading 8 bits | Light protection | ~100ms |```
 
-| 2 | ~200ms | **Production recommended** |
+| `3` | Leading 12 bits | Standard protection | ~300ms |
 
-| 3 | ~500ms | High traffic |RATE_LIMIT_MAX=100                  # Max attempts per IP per window
+| `4` | Leading 16 bits | Moderate protection | ~1s |
 
-| 4+ | ~1s+ | DDoS defense |
+| `5` | Leading 20 bits | Strong protection | ~3s |
 
-#### Accessibility Suite (WCAG 2.1 AA)Generate a secret (PowerShell):
+| `6` | Leading 24 bits | Very strong | ~10s |### Step 2: Run Server (Development Mode)
 
-### Usage
+| `7` | Leading 28 bits | Extreme | ~30s |
 
-# ============================================
+| `8` | Leading 32 bits | Maximum | ~100s+ |By default, the CAPTCHA works **without any configuration**. For customization, create a `.env` file:# 5. Start frontend (in another terminal, port 8080)
 
-```powershell
 
-# Development (disabled)# PROOF-OF-WORK (OPTIONAL)- ⚫ **Dark Mode** - Easy on the eyes, now with full CSS support
 
-$env:POW_DIFFICULTY='0'
-
-# ============================================
-
-# Production (recommended)
-
-$env:POW_DIFFICULTY='2'# 0 = Disabled (recommended for development)- 🔲 **High Contrast Mode** - For visual impairments```powershell
-
-```
-
-# 1-8 = Difficulty (higher = more CPU work required)
-
----
-
-POW_DIFFICULTY=0- 📝 **Large Text Mode** - 50% larger fonts[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
-
-## 🔴 Redis Setup (Optional)
-
-
-
-### Local Development with Docker
-
-# ============================================- ⌨️ **Full Keyboard Navigation** - Tab, Arrow keys, Space, Enter, Escape```
-
-```bash
-
-# Start Redis# ADMIN ACCESS
-
-docker run -d -p 6379:6379 redis:7-alpine
-
-# ============================================- 🔊 **Screen Reader Support** - ARIA labels, semantic HTML
-
-# Add to server command
-
-$env:REDIS_URL='redis://localhost:6379'# Generate a strong token (any random string)
-
-```
-
-# Recommended: 32+ characters, random- 🎯 **No Animations Mode** - For motion-sensitive usersOr using Node (cross-platform):
-
-### Production (Redis Cloud)
-
-ADMIN_TOKEN=your-super-secret-admin-token-here-12345
-
-1. Sign up at [redis.com](https://redis.com/)
-
-2. Copy connection string
-
-3. Use in server command:
-
-# ============================================
-
-```powershell
-
-$env:REDIS_URL='redis://:password@your-host:port'# REDIS (OPTIONAL - For Production)#### Settings Panel```powershell
-
-```
-
-# ============================================
-
----
-
-# Leave blank for in-memory mode (single-server)- Persistent preferences (saved locally)node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-## 🧪 Testing
-
-# Set for Redis-backed counters (multi-server recommended)
-
-### Test 1: Server Running
-
-# Format: redis://host:port or redis://user:password@host:port- Easy-to-find ⚙️ button```
-
-```bash
-
-curl http://localhost:3000/api/v1/challenge -Method POST -Body '{}' -ContentType 'application/json'REDIS_URL=
-
-```
-
-- Smooth animations and transitions
-
-### Test 2: Client Loads
-
-# Examples:
-
-Open: `http://localhost:8080/align_on_cue.html`
-
-# REDIS_URL=redis://localhost:6379- Modern toggle switches## Quick setup and run (Windows PowerShell)
-
-### Test 3: Dark Mode Transition
-
-# REDIS_URL=redis://:password@redis.example.com:6379
-
-1. Click ⚙️ settings
-
-2. Toggle "Dark Mode"```- **Dark mode now fully functional!** ✅
-
-3. Watch smooth gradient animation ✨
-
-
-
----
-
----1) Install server dependencies
-
-## 🔒 Production Checklist
-
-
-
-- [ ] Generate strong `CAPTCHA_SECRET`
-
-- [ ] Set `DEBUG=0`## 🔑 Secret Key Management#### Enhanced Feedback
-
-- [ ] Set `POW_DIFFICULTY=2`
-
-- [ ] Set `STRICT_ORIGIN=1`
-
-- [ ] Enable Redis
-
-- [ ] Set `ADMIN_TOKEN`### Generating CAPTCHA_SECRET- Timeout countdown with warnings (≤10s)```powershell
-
-- [ ] Use HTTPS
-
-- [ ] Rotate secrets every 90 days
-
-
-
----This is a **64-character hexadecimal string** used to sign all challenges cryptographically.- Difficulty level badges (Easy/Medium/Hard)cd 'C:\Users\<you>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server'
-
-
-
-## 🎯 Features
-
-
-
-### Security (9 Layers)#### Option 1: PowerShell (Windows) ⭐ RECOMMENDED- Confidence percentage displaynpm install
-
-- HMAC-signed challenges
-
-- Device fingerprint binding
-
-- Movement heuristics
-
-- Behavioral analysis```powershell- Clear status messages```
-
-- Automation detection
-
-- Rate limiting[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
-
-- Proof-of-Work
-
-- Temporal analysis```- Submission lock (can't submit twice)
-
-- Canvas fingerprinting
-
-
-
-### User Experience
-
-- Interactive 5-step tutorial**Copy the output (64 hex characters) and paste into `.env`:**2) (Optional) Start Redis with Docker
-
-- WCAG 2.1 AA accessibility
-
-- Dark mode with smooth transitions ✨```bash
-
-- High contrast mode
-
-- Large text modeCAPTCHA_SECRET=A1B2C3D4E5F6...---
-
-- Full keyboard navigation
-
-- Screen reader support```
+**Recommendation:** Start with `0-2` for development, `2-3` for production.**PowerShell (Windows):**
 
 
 
 ---```powershell
 
 
+
+## 🐳 Redis Setupcd server
+
+
+
+Redis is optional but recommended for production. Use for distributed rate-limiting and session management.```bashcd client && npx http-server . -p 8080 -c-1```text
+
+
+
+### Local Development (Docker)$env:DEBUG='1'
+
+
+
+```bash$env:POW_DIFFICULTY='0'# Navigate to server folder
+
+# Pull and run Redis container
+
+docker run -d -p 6379:6379 redis:latest$env:CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f'
+
+
+
+# Set environment variablecd serverCAPTCHA_SECRET=REPLACE_WITH_STRONG_RANDOM_64_HEX
+
+$env:REDIS_URL='redis://localhost:6379'
+
+node server.js
+
+# Start server
+
+node server.js```
+
+```
+
+
+
+### Production (Redis Cloud or Self-Hosted)
+
+**Bash (Linux/Mac):**# Create .env file (use PowerShell on Windows)# 6. Open in browserPORT=3000
+
+1. Sign up at [Redis Cloud](https://redis.com/try-free/) (free tier available)
+
+2. Copy connection string: `redis://username:password@host:port````bash
+
+3. Set environment variable:
+
+cd serverecho "" | Out-File -FilePath .env -Encoding UTF8
+
+```powershell
+
+$env:REDIS_URL='redis://username:password@host:port'
+
+```
+
+DEBUG='1' POW_DIFFICULTY='0' CAPTCHA_SECRET='d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f' node server.js```# http://localhost:8080/align_on_cue.htmlALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+
+---
+
+```
+
+## 📡 API Reference
+
+
+
+All endpoints are prefixed with `/api/v1`.
+
+**Expected Output:**
+
+### POST /challenge
+
+```**Edit `.env` with these settings:**```STRICT_ORIGIN=false
+
+Generate a new CAPTCHA challenge.
+
+Server running on http://localhost:3000
+
+**Request:**
+
+```json```
+
+{
+
+  "clientIP": "user's IP address (optional)",
+
+  "userAgent": "browser user agent"
+
+}### Step 3: Run Client (in another terminal)```bashREDIS_URL=redis://localhost:6379   # optional
+
+```
+
+
+
+**Response (Success):**
+
+```json```bash# ============================================
+
+{
+
+  "id": "unique-challenge-id",cd Align-on-cue/client
+
+  "challenges": [
+
+    {"index": 0, "x": 125, "y": 200},# CORE CONFIGURATION---POW_DIFFICULTY=1                   # integer 0..8, 0 disables POW
+
+    {"index": 1, "x": 310, "y": 150},
+
+    ...npx http-server . -p 8080 -c-1
+
+  ],
+
+  "signature": "hmac-sha256-hex",```# ============================================
+
+  "ttl": 90,
+
+  "powDifficulty": 2
+
+}
+
+```**Expected Output:**PORT=3000ADMIN_TOKEN=replace-with-admin-token
+
+
+
+### POST /verify```
+
+
+
+Verify CAPTCHA submission.Starting up http-server, serving .ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+
+
+
+**Request:**Available on: http://127.0.0.1:8080
+
+```json
+
+{```STRICT_ORIGIN=0                        # Set to 1 for production## ✨ v1.2 FeaturesCHALLENGE_TTL_MS=60000             # challenge expiry in ms
+
+  "challengeID": "from-challenge",
+
+  "submission": [0, 2, 4],
+
+  "signature": "from-challenge",
+
+  "deviceFingerprint": "browser-fingerprint-hash",### Step 4: Test the CAPTCHADEBUG=1                                # Set to 0 for production
+
+  "telemetry": {
+
+    "movements": [...],
+
+    "timestamps": [...],
+
+    "pressure": [...]Open your browser:RATE_LIMIT_WINDOW_MS=60000
+
+  },
+
+  "powResult": { "nonce": 123, "hash": "..." }```
+
+}
+
+```http://localhost:8080/align_on_cue.html# ============================================
+
+
+
+**Response (Success):**```
+
+```json
+
+{# CAPTCHA SECRET (Required for Production)### 🎨 Enhanced User ExperienceRATE_LIMIT_MAX=30
+
+  "success": true,
+
+  "token": "session-token"---
+
+}
+
+```# ============================================
+
+
+
+**Response (Failure):**## 🔑 Secret Key Management
+
+```json
+
+{# Generate using PowerShell:```
+
+  "success": false,
+
+  "reason": "invalid_signature | low_confidence | rate_limited | automation_detected",### Generating CAPTCHA_SECRET
+
+  "confidence": 0.42
+
+}#   [System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+
+```
+
+**PowerShell (Windows):**
+
+### GET /admin/stats
+
+```powershell##### Interactive Tutorial
+
+Retrieve server statistics (requires `ADMIN_TOKEN` header).
+
+[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+
+**Request Headers:**
+
+``````# Or using Node.js (cross-platform):
+
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+```
+
+
+
+**Response:****Node.js (Cross-Platform):**#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"- 5-step guided walkthrough for first-time usersImportant notes:
+
+```json
+
+{```bash
+
+  "totalChallenges": 1250,
+
+  "totalVerifications": 890,node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+  "successRate": 0.71,
+
+  "rateLimitBlocks": 45```
+
+}
+
+```CAPTCHA_SECRET=d771471e8f76ef7d37594f223e056f1c2b775454ac81a2099f291ba9170e4e9f- Educational content about human verification- `CAPTCHA_SECRET`: required for production; use a strong random 32-byte (256-bit) secret expressed as hex. Keep it out of source control.
+
+
+
+### POST /admin/reset**Copy the output and use in your `.env` or server run command.**
+
+
+
+Clear all in-memory state (requires `ADMIN_TOKEN`).
+
+
+
+**Response:**---
+
+```json
+
+{# ============================================- Easy to skip- `REDIS_URL`: configure to enable Redis-backed counters/lockouts (recommended for production multi-instance deployments).
+
+  "message": "Cache cleared"
+
+}## ⚡ Proof-of-Work (POW) Configuration
+
+```
+
+# CHALLENGE CONFIGURATION
+
+---
+
+### POW_DIFFICULTY Levels
+
+## ✅ Testing the CAPTCHA
+
+# ============================================- Reduces support burden- `POW_DIFFICULTY`: lower while testing. Higher increases client CPU work.
+
+### Test Scenario 1: Basic Flow
+
+| Level | CPU Cost | Use Case |
+
+1. Open `http://localhost:8080/align_on_cue.html`
+
+2. Read instructions (click question mark)|-------|----------|----------|CHALLENGE_TTL_MS=90000              # Challenge expires in 90 seconds
+
+3. Click 3+ colored points in order
+
+4. Submit| 0 | None | Development |
+
+5. Should see success message
+
+| 1 | ~50ms | Light |RATE_LIMIT_WINDOW_MS=900000         # 15-minute window (900,000ms)
+
+### Test Scenario 2: Dark Mode
+
+| 2 | ~200ms | **Production recommended** |
+
+1. Click the gear icon (Settings)
+
+2. Toggle "Dark Mode"| 3 | ~500ms | High traffic |RATE_LIMIT_MAX=100                  # Max attempts per IP per window
+
+3. Observe smooth 0.8s transition
+
+4. Theme persists across page reloads| 4+ | ~1s+ | DDoS defense |
+
+
+
+### Test Scenario 3: Accessibility#### Accessibility Suite (WCAG 2.1 AA)Generate a secret (PowerShell):
+
+
+
+1. Press `Tab` to navigate through UI elements### Usage
+
+2. Press `Space` or `Enter` to activate buttons
+
+3. Press `Escape` to close settings# ============================================
+
+4. Enable "High Contrast" in settings
+
+5. Enable "Large Text" in settings```powershell
+
+
+
+### Test Scenario 4: Proof-of-Work# Development (disabled)# PROOF-OF-WORK (OPTIONAL)- ⚫ **Dark Mode** - Easy on the eyes, now with full CSS support
+
+
+
+1. Set `POW_DIFFICULTY=2` in environment$env:POW_DIFFICULTY='0'
+
+2. Submit CAPTCHA
+
+3. Should take ~100ms longer (PoW computation)# ============================================
+
+4. Challenge should still be solvable
+
+# Production (recommended)
+
+### Test Scenario 5: Rate Limiting
+
+$env:POW_DIFFICULTY='2'# 0 = Disabled (recommended for development)- 🔲 **High Contrast Mode** - For visual impairments```powershell
+
+1. Set `STRICT_ORIGIN=1` in environment
+
+2. Submit multiple challenges rapidly from different origins```
+
+3. Should receive rate-limit responses after threshold
+
+# 1-8 = Difficulty (higher = more CPU work required)
+
+---
+
+---
+
+## 🚀 Production Deployment Checklist
+
+POW_DIFFICULTY=0- 📝 **Large Text Mode** - 50% larger fonts[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+
+- [ ] **Secrets:** Use strong random `CAPTCHA_SECRET` (64-char hex, regenerate for each environment)
+
+- [ ] **HTTPS only:** Set `STRICT_ORIGIN=1`, enforce CORS with `ALLOWED_ORIGINS`## 🔴 Redis Setup (Optional)
+
+- [ ] **Redis:** Deploy production Redis instance (Redis Cloud recommended)
+
+- [ ] **Environment:** Set `DEBUG=0` to disable verbose logging
+
+- [ ] **Monitoring:** Log all verification failures to detect attack patterns
+
+- [ ] **Rate limiting:** Adjust thresholds based on traffic patterns### Local Development with Docker
+
+- [ ] **POW difficulty:** Start low (1-2), increase if under attack
+
+- [ ] **Admin token:** Use strong, unique `ADMIN_TOKEN`# ============================================- ⌨️ **Full Keyboard Navigation** - Tab, Arrow keys, Space, Enter, Escape```
+
+- [ ] **SSL certificate:** Ensure HTTPS on all endpoints
+
+- [ ] **Backup:** Regularly backup Redis data```bash
+
+- [ ] **Testing:** Run full test suite before production
+
+- [ ] **Documentation:** Keep deployment docs up-to-date# Start Redis# ADMIN ACCESS
+
+- [ ] **Monitoring alerts:** Set up alerts for high failure rates
+
+- [ ] **CDN:** Consider using CloudFlare or similar for DDoS protectiondocker run -d -p 6379:6379 redis:7-alpine
+
+- [ ] **Load balancing:** If using multiple servers, ensure shared Redis
+
+# ============================================- 🔊 **Screen Reader Support** - ARIA labels, semantic HTML
+
+---
+
+# Add to server command
+
+## 🐛 Troubleshooting
+
+$env:REDIS_URL='redis://localhost:6379'# Generate a strong token (any random string)
+
+### Issue: "Server running on http://localhost:3000" but page won't load
+
+```
+
+**Solution:** Check if port 3000 is in use:
+
+# Recommended: 32+ characters, random- 🎯 **No Animations Mode** - For motion-sensitive usersOr using Node (cross-platform):
+
+```powershell
+
+netstat -ano | findstr :3000### Production (Redis Cloud)
+
+# Kill process if needed
+
+taskkill /PID <pid> /FADMIN_TOKEN=your-super-secret-admin-token-here-12345
+
+```
+
+1. Sign up at [redis.com](https://redis.com/)
+
+### Issue: CAPTCHA_SECRET not set error
+
+2. Copy connection string
+
+**Solution:** Ensure the environment variable is set before running `node server.js`:
+
+3. Use in server command:
+
+```powershell
+
+$env:CAPTCHA_SECRET='your-64-char-hex-key'# ============================================
+
+node server.js
+
+``````powershell
+
+
+
+### Issue: CORS error when accessing from client$env:REDIS_URL='redis://:password@your-host:port'# REDIS (OPTIONAL - For Production)#### Settings Panel```powershell
+
+
+
+**Solution:** Set `ALLOWED_ORIGINS` to include client URL:```
+
+
+
+```powershell# ============================================
+
+$env:ALLOWED_ORIGINS='http://localhost:8080,http://localhost:3000'
+
+```---
+
+
+
+### Issue: Dark mode not working# Leave blank for in-memory mode (single-server)- Persistent preferences (saved locally)node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+
+
+**Solution:** Check browser storage permissions and reload page. Dark mode preference is stored in localStorage.## 🧪 Testing
+
+
+
+### Issue: Redis connection failed# Set for Redis-backed counters (multi-server recommended)
+
+
+
+**Solution:** If not using Redis, leave `REDIS_URL` unset. The server will use in-memory fallback for single-node deployments.### Test 1: Server Running
+
+
+
+### Issue: POW too slow (POW_DIFFICULTY too high)# Format: redis://host:port or redis://user:password@host:port- Easy-to-find ⚙️ button```
+
+
+
+**Solution:** Lower `POW_DIFFICULTY`:```bash
+
+
+
+```powershellcurl http://localhost:3000/api/v1/challenge -Method POST -Body '{}' -ContentType 'application/json'REDIS_URL=
+
+$env:POW_DIFFICULTY='1'  # Instead of 4-8
+
+``````
+
+
+
+---- Smooth animations and transitions
+
+
+
+## 📦 Deployment Examples### Test 2: Client Loads
+
+
+
+### Heroku (PowerShell)# Examples:
+
+
+
+```powershellOpen: `http://localhost:8080/align_on_cue.html`
+
+# Create Heroku app
+
+heroku create your-captcha-app# REDIS_URL=redis://localhost:6379- Modern toggle switches## Quick setup and run (Windows PowerShell)
+
+
+
+# Set environment variables### Test 3: Dark Mode Transition
+
+heroku config:set DEBUG=0 POW_DIFFICULTY=2 CAPTCHA_SECRET=<your-secret> ADMIN_TOKEN=<token>
+
+# REDIS_URL=redis://:password@redis.example.com:6379
+
+# Deploy
+
+git push heroku updated:main1. Click ⚙️ settings
+
+```
+
+2. Toggle "Dark Mode"```- **Dark mode now fully functional!** ✅
+
+### AWS EC2 (Ubuntu)
+
+3. Watch smooth gradient animation ✨
+
+```bash
+
+# SSH into instance
+
+ssh -i your-key.pem ubuntu@your-instance-ip
+
+---
+
+# Clone repo
+
+git clone https://github.com/sahana1s/Align-on-Cue-CAPTCHA.git---1) Install server dependencies
+
+cd Align-on-Cue-CAPTCHA/Align-on-cue
+
+## 🔒 Production Checklist
+
+# Install Node.js
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+sudo apt-get install -y nodejs
+
+- [ ] Generate strong `CAPTCHA_SECRET`
+
+# Install dependencies
+
+npm install- [ ] Set `DEBUG=0`## 🔑 Secret Key Management#### Enhanced Feedback
+
+cd server && npm install
+
+cd ..- [ ] Set `POW_DIFFICULTY=2`
+
+
+
+# Set environment- [ ] Set `STRICT_ORIGIN=1`
+
+export DEBUG=0
+
+export POW_DIFFICULTY=2- [ ] Enable Redis
+
+export CAPTCHA_SECRET=<your-secret>
+
+- [ ] Set `ADMIN_TOKEN`### Generating CAPTCHA_SECRET- Timeout countdown with warnings (≤10s)```powershell
+
+# Start server (use PM2 for persistence)
+
+sudo npm install -g pm2- [ ] Use HTTPS
+
+pm2 start server/server.js --name captcha
+
+pm2 startup- [ ] Rotate secrets every 90 days
+
+pm2 save
+
+```
+
+
+
+### Docker Deployment---This is a **64-character hexadecimal string** used to sign all challenges cryptographically.- Difficulty level badges (Easy/Medium/Hard)cd 'C:\Users\<you>\Desktop\Captcha\Align-on-Cue-CAPTCHA\Align-on-cue\server'
+
+
+
+```dockerfile
+
+FROM node:20-alpine
+
+## 🎯 Features
+
+WORKDIR /app
+
+
+
+COPY Align-on-cue /app
+
+### Security (9 Layers)#### Option 1: PowerShell (Windows) ⭐ RECOMMENDED- Confidence percentage displaynpm install
+
+RUN npm install && cd server && npm install && cd ..
+
+- HMAC-signed challenges
+
+EXPOSE 3000
+
+- Device fingerprint binding
+
+CMD ["node", "server/server.js"]
+
+```- Movement heuristics
+
+
+
+Build and run:- Behavioral analysis```powershell- Clear status messages```
+
+
+
+```bash- Automation detection
+
+docker build -t captcha:latest .
+
+docker run -p 3000:3000 -e CAPTCHA_SECRET=<your-secret> captcha:latest- Rate limiting[System.BitConverter]::ToString((New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes(32)) -replace '-', ''
+
+```
+
+- Proof-of-Work
+
+---
+
+- Temporal analysis```- Submission lock (can't submit twice)
+
+## 📄 License
+
+- Canvas fingerprinting
+
+This project is open source. See LICENSE file for details.
+
+
+
+---
+
+### User Experience
+
+## 🤝 Contributing
+
+- Interactive 5-step tutorial**Copy the output (64 hex characters) and paste into `.env`:**2) (Optional) Start Redis with Docker
+
+Contributions welcome! Please:
+
+- WCAG 2.1 AA accessibility
+
+1. Fork the repository
+
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)- Dark mode with smooth transitions ✨```bash
+
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+
+4. Push to branch (`git push origin feature/amazing-feature`)- High contrast mode
+
+5. Open a Pull Request
+
+- Large text modeCAPTCHA_SECRET=A1B2C3D4E5F6...---
+
+---
+
+- Full keyboard navigation
+
+## 💬 Support & Questions
+
+- Screen reader support```
+
+- **Issues:** Open an issue on [GitHub](https://github.com/sahana1s/Align-on-Cue-CAPTCHA/issues)
+
+- **Discussions:** Use [GitHub Discussions](https://github.com/sahana1s/Align-on-Cue-CAPTCHA/discussions)
+
+- **Security:** Report security issues privately to maintainers
+
+---```powershell
+
+---
+
+
+
+**Happy CAPTCHAing! 🎉**
 
 ## 🎨 UI Theme & Animations#### Option 2: Node.js (Cross-Platform)
 
