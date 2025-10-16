@@ -2,7 +2,7 @@
 
 A modern, secure, and user-friendly human verification system hardened against automation tools.
 
-**Status:** Production Ready | **Version:** 1.2.0
+**Version:** 1.2.0
 
 ---
 
@@ -353,4 +353,4 @@ Leave `REDIS_URL` unset for in-memory fallback.
 
 ---
 
-**Version:** 1.2.0 | **Status:** Production Ready | **Last Updated:** October 16, 2025
+**Version:** 1.2.0 |**Last Updated:** October 16, 2025
