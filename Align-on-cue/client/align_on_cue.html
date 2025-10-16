@@ -2,33 +2,898 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Align on Cue</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Align on Cue - Human Verification</title>
 <style>
-body { font-family: system-ui, sans-serif; text-align:center; padding:30px; background:#f9fafb; }
-#status { margin-top:14px; font-size:15px; color:#111827; min-height:20px; }
-button { margin-top:14px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:white; font-size:15px; cursor:pointer; }
-canvas { display:block; margin:20px auto; background:#f3f4f6; border-radius:50%; touch-action:none; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #fff;
+}
+
+.container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 40px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.instruction {
+  background: #f1f5f9;
+  border-left: 4px solid #667eea;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.instruction strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.stage-container {
+  position: relative;
+  margin: 24px auto;
+  width: 320px;
+  height: 320px;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #f8fafc;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  touch-action: none;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+#noise {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.3;
+  border-radius: 50%;
+}
+
+#cssNoise {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.15;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  z-index: 4;
+}
+
+.info-bar {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-label {
+  font-weight: 500;
+}
+
+.info-value {
+  font-weight: 700;
+  color: #667eea;
+}
+
+#status {
+  min-height: 48px;
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 20px 0;
+  background: #f1f5f9;
+  color: #334155;
+  transition: all 0.3s ease;
+}
+
+#status.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+#status.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+#status.waiting {
+  background: #fef3c7;
+  color: #92400e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+button {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progress-ring {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 48px;
+  height: 48px;
+}
+
+.progress-ring circle {
+  transition: stroke-dashoffset 0.3s;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.keyboard-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 16px;
+}
+
+.keyboard-hint kbd {
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #475569;
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 24px;
+  }
+  
+  .stage-container, #cssNoise {
+    width: 280px;
+    height: 280px;
+  }
+  
+  canvas {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+canvas:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 4px;
+}
+
+/* Guide and accessibility features */
+.guide-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.guide-box {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.guide-box h2 {
+  font-size: 24px;
+  color: #667eea;
+  margin-bottom: 16px;
+}
+
+.guide-box p {
+  color: #475569;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.guide-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.guide-buttons button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.guide-buttons .primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.guide-buttons .primary:hover {
+  transform: translateY(-2px);
+}
+
+.guide-buttons .secondary {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.guide-buttons .secondary:hover {
+  background: #cbd5e1;
+}
+
+.settings-panel {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  max-width: 280px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(320px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.settings-panel.open {
+  display: block;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.settings-header h3 {
+  font-size: 14px;
+  color: #334155;
+  margin: 0;
+}
+
+.close-settings {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.setting-item {
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-label {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.toggle-switch {
+  width: 40px;
+  height: 22px;
+  background: #cbd5e1;
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-switch.on {
+  background: #667eea;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: left 0.3s;
+}
+
+.toggle-switch.on::after {
+  left: 20px;
+}
+
+.range-input {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+}
+
+.range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+  border: none;
+}
+
+.timeout-warning {
+  animation: pulse 1s infinite;
+}
+
+.difficulty-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.difficulty-easy {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.difficulty-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.difficulty-hard {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.settings-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.settings-btn.hidden {
+  display: none;
+}
+
+/* High contrast mode */
+body.high-contrast {
+  --text-color: #000;
+  --bg-color: #fff;
+  --accent-color: #0066cc;
+}
+
+body.high-contrast .container {
+  background: white;
+  border: 3px solid black;
+}
+
+body.high-contrast button {
+  border: 2px solid black;
+}
+
+body.high-contrast button:focus {
+  outline: 3px solid #0066cc;
+}
+
+/* Large text mode */
+body.large-text {
+  font-size: 18px;
+}
+
+body.large-text h1 {
+  font-size: 36px;
+}
+
+body.large-text .subtitle {
+  font-size: 18px;
+}
+
+body.large-text button {
+  padding: 20px;
+  font-size: 18px;
+}
+
+/* ===== DARK MODE ===== */
+body.dark-mode {
+  background: linear-gradient(135deg, #1a1f36 0%, #16213e 100%);
+}
+
+body.dark-mode .container {
+  background: rgba(25, 32, 65, 0.98);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode h1 {
+  color: #7c8eff;
+}
+
+body.dark-mode .subtitle {
+  color: #a0aec0;
+}
+
+body.dark-mode .status {
+  background: rgba(102, 126, 234, 0.15);
+  color: #a0aec0;
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode canvas {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+body.dark-mode button:hover {
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode button:disabled {
+  background: rgba(102, 126, 234, 0.3);
+  cursor: not-allowed;
+}
+
+body.dark-mode .settings-panel {
+  background: rgba(30, 41, 82, 0.95);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .settings-panel h3 {
+  color: #7c8eff;
+}
+
+body.dark-mode .setting-label {
+  color: #cbd5e1;
+}
+
+body.dark-mode .toggle-switch {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .toggle-switch.on {
+  background: rgba(102, 126, 234, 0.4);
+  border-color: rgba(102, 126, 234, 0.6);
+}
+
+body.dark-mode .toggle-switch::after {
+  background: #7c8eff;
+}
+
+body.dark-mode .settings-btn {
+  background: rgba(102, 126, 234, 0.2);
+  color: #7c8eff;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .settings-btn:hover {
+  background: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .guide-overlay {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+body.dark-mode .guide-box {
+  background: rgba(30, 41, 82, 0.98);
+  border: 2px solid rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .guide-box h3 {
+  color: #7c8eff;
+}
+
+body.dark-mode .guide-box p {
+  color: #cbd5e1;
+}
+
+body.dark-mode .guide-nav button {
+  background: rgba(102, 126, 234, 0.3);
+  color: #7c8eff;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .guide-nav button:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
+body.dark-mode .difficulty-badge {
+  background: rgba(102, 126, 234, 0.2);
+  color: #7c8eff;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .confidence-display {
+  color: #7c8eff;
+}
+
+/* ===== ENHANCED UI THEME ===== */
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container {
+  border-radius: 24px;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .container {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+h1 {
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode h1 {
+  background: linear-gradient(135deg, #7c8eff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  transition: color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+canvas {
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+}
+
+body.dark-mode canvas {
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+button:active {
+  transform: translateY(-1px);
+}
+
+button:focus {
+  outline: 3px solid rgba(102, 126, 234, 0.5);
+  outline-offset: 2px;
+}
+
+.status {
+  border-radius: 12px;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .status {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.settings-panel {
+  border-radius: 16px;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .settings-panel {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.guide-overlay {
+  backdrop-filter: blur(5px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.guide-box {
+  border-radius: 16px;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .guide-box {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.difficulty-badge {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== SMOOTH ANIMATIONS ===== */
+body:not(.no-animations) .container {
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body:not(.no-animations) button {
+  animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>
 </head>
 <body>
-<h2>Align on Cue</h2>
-<p>Wait for the 🔔 beep, align the green bar with the red one, then click Submit (or press Space).</p>
-<canvas id="stage" width="300" height="300" aria-label="alignment stage"></canvas>
-<div id="status">Loading challenge…</div>
-<button id="submitBtn">Submit</button>
+<div class="container">
+  <h1>🎯 Align on Cue</h1>
+  <p class="subtitle">Verify you're human with a simple alignment task</p>
+  
+  <div class="instruction">
+    <strong>How it works:</strong> Wait for the 🔔 beep, then align the <strong style="color: #10b981;">green bar</strong> with the <strong style="color: #f87171;">red target</strong>. Use your mouse/touch to drag, or arrow keys (← →) for fine adjustments.
+  </div>
+  
+  <div class="stage-container">
+    <canvas id="stage" width="320" height="320" aria-label="Alignment stage - drag to rotate the pointer" tabindex="0"></canvas>
+    <canvas id="noise" width="320" height="320" aria-hidden="true"></canvas>
+    <div id="cssNoise" aria-hidden="true"></div>
+  </div>
+  
+  <div class="info-bar">
+    <div class="info-item">
+      <span class="info-label">Time left:</span>
+      <span class="info-value" id="remaining">--</span>s
+    </div>
+    <div class="info-item">
+      <span class="info-label">Confidence:</span>
+      <span class="info-value" id="confidence">--</span>
+    </div>
+    <div class="info-item" id="difficulty-display"></div>
+  </div>
+  
+  <div id="status" role="status" aria-live="polite" aria-atomic="true">Loading challenge…</div>
+  
+  <button id="submitBtn" aria-label="Submit your alignment">Submit Alignment</button>
+  
+  <div class="keyboard-hint">
+    Tip: Press <kbd>Space</kbd> to submit, or use <kbd>←</kbd> <kbd>→</kbd> arrows to adjust
+  </div>
+</div>
 
+<!-- Settings Button -->
+<button id="settingsBtn" class="settings-btn" aria-label="Open settings and accessibility options" title="Settings">⚙️</button>
+
+<!-- Settings Panel -->
+<div id="settingsPanel" class="settings-panel">
+  <div class="settings-header">
+    <h3>Settings</h3>
+    <button class="close-settings" aria-label="Close settings">&times;</button>
+  </div>
+  
+  <div class="setting-item">
+    <label class="setting-label">Dark Mode</label>
+    <div class="toggle-switch" id="darkModeToggle" role="switch" aria-checked="false" tabindex="0"></div>
+  </div>
+  
+  <div class="setting-item">
+    <label class="setting-label">High Contrast</label>
+    <div class="toggle-switch" id="highContrastToggle" role="switch" aria-checked="false" tabindex="0"></div>
+  </div>
+  
+  <div class="setting-item">
+    <label class="setting-label">Large Text</label>
+    <div class="toggle-switch" id="largeTextToggle" role="switch" aria-checked="false" tabindex="0"></div>
+  </div>
+  
+  <div class="setting-item">
+    <label class="setting-label">Animations</label>
+    <div class="toggle-switch on" id="animationsToggle" role="switch" aria-checked="true" tabindex="0"></div>
+  </div>
+</div>
+
+<!-- Guided Tutorial Overlay -->
+<div id="guideOverlay" class="guide-overlay" style="display: none;">
+  <div class="guide-box">
+    <h2 id="guideTitle">Welcome! 👋</h2>
+    <p id="guideText">Let's learn how to use this verification system.</p>
+    <div class="guide-buttons">
+      <button class="secondary" id="skipGuideBtn">Skip</button>
+      <button class="primary" id="nextGuideBtn">Start Tutorial</button>
+    </div>
+  </div>
+</div>
 
 <script>
-(() => {
+(function(){
 const API_BASE = 'http://localhost:3000/api/v1';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
 const submitBtn = document.getElementById('submitBtn');
-const W = canvas.width, H = canvas.height, R = 150;
+const W = canvas.width, H = canvas.height, R = 160;
 
-// --- runtime state ---
 let challengeData = null;
 let pointerAngle = 0;
 let dragging = false, startX = 0, startAngle = 0, pointerId = null;
@@ -36,323 +901,971 @@ let beepActive = false, beepStart = 0, success = false;
 
 let moveHistory = [];
 let lastMoveTime = 0;
-let startTime = 0;
+const cssNoise = document.getElementById('cssNoise');
+let telemetry = [];
+let submissionLocked = false; // Prevent multiple submissions
 
-// --- audio ---
+function recordEvent(type, extra) { telemetry.push({ type, t: Date.now(), extra }); }
+
+// Enhanced color palettes with better accessibility
+const palettes = [
+  { target: '#f87171', pointer: '#34d399', bg: '#f8fafc' },
+  { target: '#fb923c', pointer: '#60a5fa', bg: '#fef3c7' },
+  { target: '#f472b6', pointer: '#10b981', bg: '#fae8ff' },
+  { target: '#a78bfa', pointer: '#fbbf24', bg: '#ede9fe' }
+];
+
+// Cache palette selection across potential redraws/interactions
+let cachedPalette = null;
+try {
+  const stored = sessionStorage.getItem('captcha_palette');
+  if (stored) {
+    cachedPalette = JSON.parse(stored);
+  }
+} catch (e) {
+  // sessionStorage might be disabled
+}
+
+if (!cachedPalette) {
+  cachedPalette = palettes[Math.floor(Math.random() * palettes.length)];
+  try {
+    sessionStorage.setItem('captcha_palette', JSON.stringify(cachedPalette));
+  } catch (e) {
+    // Ignore if sessionStorage is disabled
+  }
+}
+
+const picked = cachedPalette;
+const pointerColor = picked.pointer;
+const targetColor = picked.target;
+canvas.style.background = picked.bg;
+
+// Randomize bar appearance
+let pointerRound = 8 + Math.floor(Math.random() * 8);
+let targetRound = pointerRound;
+let barWidth = 14 + Math.floor(Math.random() * 6);
+
+// Micro-idle movement for natural jitter
+setInterval(() => {
+  if (!dragging && !success && beepActive) {
+    pointerAngle += (Math.random() - 0.5) * 0.4;
+  }
+}, 60);
+
+// Audio context for beep
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 function resumeAudioContextOnce() {
-  if (!audioCtx) { audioCtx = new AudioCtx(); audioCtx.resume().catch(()=>{}); }
+  if (!audioCtx) {
+    audioCtx = new AudioCtx();
+    audioCtx.resume().catch(() => {});
+  }
 }
+
 function playBeep() {
   resumeAudioContextOnce();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = 'sine';
   osc.frequency.value = 880;
-  gain.gain.value = 0.15;
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
   osc.connect(gain);
   gain.connect(audioCtx.destination);
-  const now = audioCtx.currentTime;
-  osc.start(now);
-  osc.stop(now + 0.2);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// --- helpers ---
 function normalizeAngle(angle) {
-    angle = angle % 360;
-    if (angle > 180) angle -= 360;
-    if (angle <= -180) angle += 360;
-    return angle;
+  angle = angle % 360;
+  if (angle > 180) angle -= 360;
+  if (angle <= -180) angle += 360;
+  return angle;
 }
 
 function angleDiffAbs(a, b) {
-    let diff = Math.abs(normalizeAngle(a - b));
-    return Math.min(diff, 360 - diff);
+  a = normalizeAngle(a);
+  b = normalizeAngle(b);
+  return Math.abs(a - b);
 }
 
 function computeTargetAngle(seed) {
-    const array = new Uint8Array(32);
-    for (let i = 0; i < seed.toString().length; i++) {
-        array[i] = seed.toString().charCodeAt(i);
-    }
-    const hashArray = new Uint32Array(array.buffer);
-    return hashArray[0] % 360;
+  const array = new Uint8Array(32);
+  for (let i = 0; i < seed.toString().length; i++) array[i] = seed.toString().charCodeAt(i);
+  const hashArray = new Uint32Array(array.buffer);
+  return hashArray[0] % 360;
 }
 
-// --- drawing ---
 let flashAlpha = 0;
 function draw() {
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = '#f3f4f6';
-  ctx.beginPath();
-  ctx.arc(W/2,H/2,R,0,Math.PI*2);
-  ctx.fill();
-
-  if(flashAlpha>0){
-    ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+  ctx.clearRect(0, 0, W, H);
+  
+  // Flash effect on beep
+  if (flashAlpha > 0) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
     ctx.beginPath();
-    ctx.arc(W/2,H/2,R,0,Math.PI*2);
+    ctx.arc(W / 2, H / 2, R, 0, Math.PI * 2);
     ctx.fill();
+    flashAlpha *= 0.92; // Smooth fade
   }
-
+  
   ctx.save();
-  ctx.translate(W/2,H/2);
-
+  ctx.translate(W / 2, H / 2);
+  
+  // Draw target bar
   if (challengeData) {
-        const targetAngle = normalizeAngle(challengeData._targetAngle);
-        ctx.save();
-        ctx.rotate(targetAngle * Math.PI / 180);
-        ctx.fillStyle = 'rgba(244,63,94,0.32)';
-        ctx.fillRect(-90,-7,180,14);
-        ctx.restore();
-    }
-
-    const normalizedPointer = normalizeAngle(pointerAngle);
+    const targetAngle = normalizeAngle(challengeData._targetAngle);
     ctx.save();
-    ctx.rotate(normalizedPointer * Math.PI / 180);
-    ctx.fillStyle = '#34d399';
-    ctx.fillRect(-90,-7,180,14);
+    ctx.rotate(targetAngle * Math.PI / 180);
+    ctx.fillStyle = targetColor;
+    ctx.globalAlpha = 0.4;
+    roundRect(ctx, -100, -barWidth / 2, 200, barWidth, targetRound);
+    ctx.globalAlpha = 1;
     ctx.restore();
-
+  }
+  
+  // Draw pointer bar with glow
+  const normalizedPointer = normalizeAngle(pointerAngle);
+  ctx.save();
+  ctx.rotate(normalizedPointer * Math.PI / 180);
+  
+  // Glow effect
+  ctx.shadowColor = pointerColor;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = pointerColor;
+  roundRect(ctx, -100, -barWidth / 2, 200, barWidth, pointerRound);
+  
+  ctx.shadowBlur = 0;
   ctx.restore();
+  ctx.restore();
+  
   requestAnimationFrame(draw);
 }
 
-// --- pointer handlers ---
+function roundRect(ctx, x, y, w, h, r) {
+  const rad = Math.max(0, r);
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.lineTo(x + w - rad, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+  ctx.lineTo(x + w, y + h - rad);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+  ctx.lineTo(x + rad, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+  ctx.lineTo(x, y + rad);
+  ctx.quadraticCurveTo(x, y, x + rad, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// WebGL noise overlay (same as before, kept for obfuscation)
+let noiseState = null;
+function compileShader(gl, src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.warn('Shader compile error:', gl.getShaderInfoLog(s));
+    return null;
+  }
+  return s;
+}
+
+function initNoiseOverlay() {
+  const ncanvas = document.getElementById('noise');
+  try {
+    const gl = ncanvas.getContext('webgl');
+    if (!gl) return console.warn('WebGL not available for noise overlay');
+    
+    const vsSrc = 'attribute vec2 a; void main(){ gl_Position = vec4(a,0.0,1.0); }';
+    const fsSrc = `precision mediump float;
+      uniform float t;
+      uniform float seed;
+      uniform float targetAngle;
+      uniform vec2 resolution;
+      
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7)) + seed) * 43758.5453123); }
+      
+      float noise(vec2 p) {
+        float n = 0.0;
+        float amp = 0.5;
+        for(int i=0; i<6; i++) {
+          float f = pow(2.0, float(i));
+          n += amp * fract(sin(dot(p * f, vec2(12.9898,78.233)) + seed + t*0.08) * 43758.5453);
+          amp *= 0.48;
+        }
+        return n;
+      }
+      
+      float angularCue(vec2 uv) {
+        vec2 center = resolution * 0.5;
+        vec2 p = (uv * resolution - center) / min(resolution.x, resolution.y);
+        float r = length(p);
+        float ang = atan(p.y, p.x);
+        float deg = degrees(ang);
+        float tgt = mod(targetAngle + 180.0, 360.0) - 180.0;
+        float diff = abs(mod(deg - tgt + 180.0, 360.0) - 180.0);
+        float band = smoothstep(0.02, 0.002, diff * (1.0 + 7.0 * smoothstep(0.35,0.65,r)));
+        float ring = smoothstep(0.48, 0.46, r) - smoothstep(0.64, 0.66, r);
+        return band * ring * 0.85;
+      }
+      
+      void main() {
+        vec2 uv = gl_FragCoord.xy / resolution.xy;
+        float n = noise(uv * 22.0);
+        n += 0.6 * noise(uv * 65.0);
+        n = clamp(n * 0.55, 0.0, 1.0);
+        
+        vec3 col = vec3(n);
+        float hueShift = fract(sin(seed * 12.9898 + t * 0.015) * 43758.5453) * 0.18 - 0.09;
+        col.r = clamp(col.r + hueShift * 0.7, 0.0, 1.0);
+        col.g = clamp(col.g - hueShift * 0.3, 0.0, 1.0);
+        
+        float cue = angularCue(uv);
+        col = mix(col, vec3(1.0, 0.9, 0.65), cue * 0.3);
+        
+        gl_FragColor = vec4(col, 1.0);
+      }`;
+    
+    const vs = compileShader(gl, vsSrc, gl.VERTEX_SHADER);
+    const fs = compileShader(gl, fsSrc, gl.FRAGMENT_SHADER);
+    if (!vs || !fs) return;
+    
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.warn('Program link error', gl.getProgramInfoLog(prog));
+      return;
+    }
+    
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+    
+    const aLoc = gl.getAttribLocation(prog, 'a');
+    gl.enableVertexAttribArray(aLoc);
+    gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+    
+    const tLoc = gl.getUniformLocation(prog, 't');
+    const seedLoc = gl.getUniformLocation(prog, 'seed');
+    const targetLoc = gl.getUniformLocation(prog, 'targetAngle');
+    const resLoc = gl.getUniformLocation(prog, 'resolution');
+    
+    gl.viewport(0, 0, ncanvas.width, ncanvas.height);
+    gl.uniform2f(resLoc, ncanvas.width, ncanvas.height);
+    
+    noiseState = { gl, prog, tLoc, seedLoc, targetLoc, seed: Math.random() * 1000, targetAngle: 0 };
+    
+    function render(t) {
+      if (!noiseState) return;
+      const g = noiseState.gl;
+      g.useProgram(noiseState.prog);
+      g.uniform1f(noiseState.tLoc, t * 0.001);
+      g.uniform1f(noiseState.seedLoc, noiseState.seed || 0.0);
+      g.uniform1f(noiseState.targetLoc, noiseState.targetAngle || 0.0);
+      g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+      requestAnimationFrame(render);
+    }
+    
+    requestAnimationFrame(render);
+  } catch (e) {
+    console.warn('Noise overlay init failed', e);
+  }
+}
+
+function updateNoiseParams(seed, targetAngle) {
+  if (!noiseState) return;
+  const s = typeof seed === 'number' ? seed : (typeof seed === 'string' ? seed.split('').reduce((a,c) => a + c.charCodeAt(0), 0) : Math.random() * 1000);
+  noiseState.seed = s;
+  noiseState.targetAngle = ((typeof targetAngle === 'number') ? targetAngle : 0);
+}
+
+initNoiseOverlay();
+
+// Enhanced pointer event handling with acceleration tracking
 canvas.addEventListener('pointerdown', e => {
-    resumeAudioContextOnce();
-    dragging = true;
-    pointerId = e.pointerId;
-    startX = e.clientX;
-    startAngle = pointerAngle;
-    moveHistory = [];
-    lastMoveTime = performance.now();
+  resumeAudioContextOnce();
+  dragging = true;
+  pointerId = e.pointerId;
+  startX = e.clientX;
+  startAngle = pointerAngle;
+  moveHistory = [];
+  lastMoveTime = performance.now();
+  recordEvent('pointerdown', { x: e.clientX, y: e.clientY, pressure: e.pressure });
 });
 
 canvas.addEventListener('pointermove', e => {
-    if (!dragging || e.pointerId !== pointerId) return;
-    
-    const now = performance.now();
-    const rect = canvas.getBoundingClientRect();
-    const dx = e.clientX - startX;
-    pointerAngle = startAngle + dx/3;
-
-    moveHistory.push({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        timestamp: now,
-        pressure: e.pressure || 0,
-        angle: pointerAngle,
-        speed: lastMoveTime ? Math.sqrt(
-            Math.pow(e.movementX || 0, 2) + 
-            Math.pow(e.movementY || 0, 2)
-        ) / (now - lastMoveTime) : 0,
-        dt: now - lastMoveTime
-    });
-    
-    lastMoveTime = now;
+  if (!dragging || e.pointerId !== pointerId) return;
+  
+  const now = performance.now();
+  const rect = canvas.getBoundingClientRect();
+  const dx = e.clientX - startX;
+  const prevAngle = pointerAngle;
+  pointerAngle = startAngle + dx / 2.5; // Smoother rotation
+  
+  const dt = now - lastMoveTime || 1;
+  const angularVel = (pointerAngle - prevAngle) / dt;
+  const speed = Math.sqrt(Math.pow(e.movementX || 0, 2) + Math.pow(e.movementY || 0, 2)) / dt;
+  
+  moveHistory.push({
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
+    timestamp: now,
+    pressure: e.pressure || 0.5,
+    angle: pointerAngle,
+    speed: speed * 1000,
+    angularVelocity: angularVel * 1000,
+    dt: dt
+  });
+  
+  if (moveHistory.length > 400) moveHistory.shift();
+  lastMoveTime = now;
+  recordEvent('pointermove', { x: e.clientX - rect.left, y: e.clientY - rect.top, angle: pointerAngle });
 });
 
-canvas.addEventListener('pointerup', e=>{
-  if(e.pointerId === pointerId) dragging = false;
+canvas.addEventListener('pointerup', e => {
+  if (e.pointerId === pointerId) {
+    dragging = false;
+    recordEvent('pointerup', { angle: pointerAngle });
+  }
 });
 
-// --- keyboard ---
-document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowLeft') pointerAngle -= 2;
-  if(e.key==='ArrowRight') pointerAngle += 2;
-  if(e.key===' ') attemptSubmit();
+// Keyboard controls with smoother adjustment
+let keyPressCount = { left: 0, right: 0 };
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') {
+    pointerAngle -= 1.5;
+    keyPressCount.left++;
+    recordEvent('keydown', { key: e.key, count: keyPressCount.left });
+  }
+  if (e.key === 'ArrowRight') {
+    pointerAngle += 1.5;
+    keyPressCount.right++;
+    recordEvent('keydown', { key: e.key, count: keyPressCount.right });
+  }
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    attemptSubmit();
+  }
 });
 
-// --- beep ---
-function getRandomDuration() { return 800 + (Math.random() * 800); }
+// CSS noise rotation (animated)
+let cssNoiseAngle = 0;
+setInterval(() => {
+  cssNoiseAngle += 15 + Math.random() * 30;
+  const g = `repeating-linear-gradient(${cssNoiseAngle}deg, rgba(0,0,0,0.02) 0 2px, transparent 2px 4px)`;
+  try {
+    cssNoise.style.backgroundImage = g;
+  } catch (e) {}
+  recordEvent('cssNoiseRotate', { angle: cssNoiseAngle });
+}, 250);
 
-function triggerBeep(){
+function getRandomDuration() {
+  // Variable beep duration for anti-bot timing
+  return 600 + (Math.random() * 1000);
+}
+
+function triggerBeep() {
   beepActive = true;
   beepStart = performance.now();
-  flashAlpha = 0.6;
+  flashAlpha = 0.7;
   playBeep();
-  status.textContent = '🔔 Align now!';
+  
+  status.textContent = '🔔 Align now and submit!';
+  status.className = 'waiting';
+  submitBtn.disabled = false;
+  
   const duration = getRandomDuration();
-  setTimeout(()=>{
+  setTimeout(() => {
     beepActive = false;
     flashAlpha = 0;
-    if(!success){
+    if (!success) {
       status.textContent = '⏳ Waiting for next beep…';
+      status.className = '';
+      submitBtn.disabled = true;
       scheduleBeep();
     }
   }, duration);
 }
-function scheduleBeep(){
-  const delay = 2000 + Math.random()*3000;
+
+function scheduleBeep() {
+  // Randomized delay to frustrate timing-based bots
+  const delay = 1800 + Math.random() * 3500;
   setTimeout(triggerBeep, delay);
 }
 
-// --- backend integration ---
-async function fetchChallenge() {
-    try {
-        const res = await fetch(`${API_BASE}/challenge`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ client_id: 'browser-demo' })
-        });
-        
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        
-        const data = await res.json();
-        console.log('Challenge response:', data); // Debug logging
-        
-        if (!data.challenge || !data.sig) {
-            throw new Error('Invalid challenge format');
-        }
-
-        challengeData = data;
-        
-        // Parse challenge and compute target angle
-        const challengeBlob = JSON.parse(atob(data.challenge));
-        challengeData._targetAngle = computeTargetAngle(challengeBlob.seed);
-        
-        console.log('Target angle:', challengeData._targetAngle); // Debug logging
-        
-        status.textContent = 'Waiting for beep…';
-        scheduleBeep();
-    } catch (err) {
-        console.error('Challenge error:', err);
-        status.textContent = `❌ Failed to load challenge: ${err.message}`;
+function startRemainingTimer(ttlSeconds) {
+  const remainingEl = document.getElementById('remaining');
+  let end = Date.now() + ttlSeconds * 1000;
+  const iv = setInterval(() => {
+    const sec = Math.max(0, Math.round((end - Date.now()) / 1000));
+    remainingEl.textContent = sec;
+    // Warning at 10 seconds
+    if (sec <= 10 && sec > 0) {
+      remainingEl.parentElement.classList.add('timeout-warning');
     }
+    if (sec <= 0) {
+      clearInterval(iv);
+      remainingEl.parentElement.classList.remove('timeout-warning');
+    }
+  }, 500);
+}
+
+// ========== ACCESSIBILITY & SETTINGS ==========
+
+let currentDifficulty = 'easy'; // easy, medium, hard
+
+const difficultyLevels = {
+  easy: { tolerance: 10, minMoves: 3, label: 'Easy' },
+  medium: { tolerance: 6, minMoves: 8, label: 'Medium' },
+  hard: { tolerance: 3, minMoves: 15, label: 'Hard' }
+};
+
+// Load user preferences from localStorage
+function loadPreferences() {
+  try {
+    const saved = localStorage.getItem('captcha_prefs');
+    if (saved) {
+      const prefs = JSON.parse(saved);
+      if (prefs.darkMode) document.body.classList.add('dark-mode');
+      if (prefs.highContrast) document.body.classList.add('high-contrast');
+      if (prefs.largeText) document.body.classList.add('large-text');
+      if (prefs.noAnimations) document.body.classList.add('no-animations');
+      return prefs;
+    }
+  } catch (e) {}
+  return { darkMode: false, highContrast: false, largeText: false, noAnimations: false };
+}
+
+function savePreferences(prefs) {
+  try {
+    localStorage.setItem('captcha_prefs', JSON.stringify(prefs));
+  } catch (e) {}
+}
+
+// Initialize guided tutorial on first visit
+function initializeGuide() {
+  try {
+    if (!sessionStorage.getItem('captcha_guide_shown')) {
+      showGuide(0);
+      sessionStorage.setItem('captcha_guide_shown', 'true');
+    }
+  } catch (e) {}
+}
+
+const guideSteps = [
+  {
+    title: '👋 Welcome!',
+    text: 'This is a human verification system. Let\'s learn how to use it in 30 seconds.'
+  },
+  {
+    title: '🎯 The Task',
+    text: 'You\'ll see a <strong style="color: #f87171;">red target</strong> and a <strong style="color: #34d399;">green pointer</strong>. Wait for the beep, then drag the pointer to align with the target.'
+  },
+  {
+    title: '🔔 Timing Matters',
+    text: 'Your reaction time is measured. Fast reactions (0.1-3 seconds) are best. Too fast might look automated, too slow might time out.'
+  },
+  {
+    title: '⌨️ Pro Tips',
+    text: 'You can use arrow keys (← →) for fine adjustments. Press Space to submit. The system tracks your natural mouse movements to verify you\'re human.'
+  },
+  {
+    title: '✅ Ready?',
+    text: 'Click below to start. Remember: align during the beep, submit when you\'re ready!'
+  }
+];
+
+let currentGuideStep = 0;
+
+function showGuide(step) {
+  const overlay = document.getElementById('guideOverlay');
+  const title = document.getElementById('guideTitle');
+  const text = document.getElementById('guideText');
+  const nextBtn = document.getElementById('nextGuideBtn');
+  
+  if (step >= guideSteps.length) {
+    overlay.style.display = 'none';
+    return;
+  }
+  
+  const stepData = guideSteps[step];
+  title.innerHTML = stepData.title;
+  text.innerHTML = stepData.text;
+  nextBtn.textContent = step === guideSteps.length - 1 ? 'Start Verifying' : 'Next';
+  overlay.style.display = 'flex';
+  currentGuideStep = step;
+}
+
+// Difficulty display
+function updateDifficultyDisplay() {
+  const display = document.getElementById('difficulty-display');
+  const level = difficultyLevels[currentDifficulty];
+  display.innerHTML = `<span class="difficulty-badge difficulty-${currentDifficulty}">${level.label}</span>`;
+}
+
+// Settings panel controls
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettingsBtn = settingsPanel.querySelector('.close-settings');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const highContrastToggle = document.getElementById('highContrastToggle');
+const largeTextToggle = document.getElementById('largeTextToggle');
+const animationsToggle = document.getElementById('animationsToggle');
+
+let prefs = loadPreferences();
+
+// Initialize toggle states based on saved preferences
+if (prefs.darkMode) {
+  darkModeToggle.classList.add('on');
+  darkModeToggle.setAttribute('aria-checked', 'true');
+}
+if (prefs.highContrast) {
+  highContrastToggle.classList.add('on');
+  highContrastToggle.setAttribute('aria-checked', 'true');
+}
+if (prefs.largeText) {
+  largeTextToggle.classList.add('on');
+  largeTextToggle.setAttribute('aria-checked', 'true');
+}
+if (prefs.noAnimations) {
+  animationsToggle.classList.add('on');
+  animationsToggle.setAttribute('aria-checked', 'true');
+}
+
+settingsBtn.addEventListener('click', () => {
+  settingsPanel.classList.toggle('open');
+});
+
+closeSettingsBtn.addEventListener('click', () => {
+  settingsPanel.classList.remove('open');
+});
+
+darkModeToggle.addEventListener('click', () => {
+  prefs.darkMode = !prefs.darkMode;
+  darkModeToggle.classList.toggle('on');
+  darkModeToggle.setAttribute('aria-checked', prefs.darkMode);
+  document.body.classList.toggle('dark-mode');
+  savePreferences(prefs);
+});
+
+highContrastToggle.addEventListener('click', () => {
+  prefs.highContrast = !prefs.highContrast;
+  highContrastToggle.classList.toggle('on');
+  highContrastToggle.setAttribute('aria-checked', prefs.highContrast);
+  document.body.classList.toggle('high-contrast');
+  savePreferences(prefs);
+});
+
+largeTextToggle.addEventListener('click', () => {
+  prefs.largeText = !prefs.largeText;
+  largeTextToggle.classList.toggle('on');
+  largeTextToggle.setAttribute('aria-checked', prefs.largeText);
+  document.body.classList.toggle('large-text');
+  savePreferences(prefs);
+});
+
+animationsToggle.addEventListener('click', () => {
+  prefs.noAnimations = !prefs.noAnimations;
+  animationsToggle.classList.toggle('on');
+  animationsToggle.setAttribute('aria-checked', prefs.noAnimations);
+  document.body.classList.toggle('no-animations');
+  savePreferences(prefs);
+});
+
+// Guide button handlers
+document.getElementById('skipGuideBtn').addEventListener('click', () => {
+  document.getElementById('guideOverlay').style.display = 'none';
+});
+
+document.getElementById('nextGuideBtn').addEventListener('click', () => {
+  showGuide(currentGuideStep + 1);
+});
+
+// Keyboard navigation for settings
+[darkModeToggle, highContrastToggle, largeTextToggle, animationsToggle].forEach(toggle => {
+  toggle.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      toggle.click();
+    }
+  });
+});
+
+// ESC key to close settings
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && settingsPanel.classList.contains('open')) {
+    settingsPanel.classList.remove('open');
+  }
+});
+
+// Initialize on page load
+window.addEventListener('load', () => {
+  initializeGuide();
+  updateDifficultyDisplay();
+});
+
+async function fetchChallenge() {
+  try {
+    const fp = collectFingerprint();
+    const fpHash = await digestString(JSON.stringify(fp));
+    console.log('Fetching challenge with fingerprint hash:', fpHash);
+    console.log('Fingerprint object:', fp);
+    
+    const res = await fetch(`${API_BASE}/challenge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: 'browser-demo', fingerprint_hash: fpHash })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    console.log('Challenge response:', data);
+    
+    if (!data.challenge || !data.sig) throw new Error('Invalid challenge format');
+    
+    challengeData = data;
+    const challengeBlob = JSON.parse(atob(data.challenge));
+    challengeData._targetAngle = computeTargetAngle(challengeBlob.seed);
+    challengeData._challengeBlob = challengeBlob;
+    
+    try {
+      updateNoiseParams(challengeBlob.seed, challengeData._targetAngle);
+    } catch (e) {}
+    
+    status.textContent = '⏳ Waiting for beep…';
+    status.className = '';
+    submitBtn.disabled = true;
+    
+    try {
+      const blob = JSON.parse(atob(data.challenge));
+      startRemainingTimer(blob.expires_at - blob.issued_at);
+    } catch (e) {}
+    
+    scheduleBeep();
+  } catch (err) {
+    console.error('Challenge error:', err);
+    status.textContent = `❌ Failed to load challenge: ${err.message}`;
+    status.className = 'error';
+  }
+}
+
+async function digestString(str) {
+  const enc = new TextEncoder();
+  const data = enc.encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function computePowNonce(challengeB64, difficulty) {
+  const maxAttempts = 200000;
+  const prefix = '0'.repeat(Math.max(0, Math.min(8, difficulty)));
+  for (let i = 0; i < maxAttempts; i++) {
+    const nonce = (Math.random().toString(36).slice(2, 10) + i.toString(36));
+    const s = challengeB64 + ':' + nonce;
+    const h = await digestString(s);
+    if (h.startsWith(prefix)) return nonce;
+    if ((i & 0xff) === 0) await new Promise(r => setTimeout(r, 0));
+  }
+  throw new Error('POW not found');
 }
 
 async function verifyAttempt(error, reaction) {
-    const validMoves = moveHistory.filter(m => m.timestamp >= beepStart);
-    
-    if (validMoves.length === 0 && beepStart) {
-        validMoves.push({
-            x: W/2,
-            y: H/2,
-            timestamp: performance.now(),
-            pressure: 1,
-            angle: pointerAngle,
-            speed: 1,
-            dt: performance.now() - beepStart,
-            keyboard: true
-        });
+  const validMoves = moveHistory.filter(m => m.timestamp >= beepStart);
+  
+  // If no pointer movements, create a keyboard-based sample
+  if (validMoves.length === 0 && beepStart) {
+    validMoves.push({
+      x: W / 2,
+      y: H / 2,
+      timestamp: performance.now(),
+      pressure: 1,
+      angle: pointerAngle,
+      speed: 1,
+      dt: performance.now() - beepStart,
+      keyboard: true
+    });
+  }
+  
+  const fp = collectFingerprint();
+  const fpHashPromise = digestString(JSON.stringify(fp));
+  
+  console.log('Verify fingerprint object:', fp);
+  console.log('Verify fingerprint hash:', await fpHashPromise);
+  
+  const payload = {
+    challenge: challengeData.challenge,
+    sig: challengeData.sig,
+    user_angle: normalizeAngle(pointerAngle),
+    reaction_client_ms: Math.round(reaction),
+    movements: validMoves,
+    fingerprint: fp,
+    fingerprint_hash: await fpHashPromise,
+    timing: {
+      dragStart: beepStart,
+      dragEnd: performance.now(),
+      totalMoves: validMoves.length,
+      averageSpeed: validMoves.length ? validMoves.reduce((acc, m) => acc + (m.speed || 0), 0) / validMoves.length : null
     }
-
-    const payload = {
-        challenge: challengeData.challenge,
-        sig: challengeData.sig,
-        user_angle: normalizeAngle(pointerAngle),
-        reaction_client_ms: Math.round(reaction),
-        movements: validMoves,
-        fingerprint: collectFingerprint(),
-        timing: {
-            dragStart: beepStart,
-            dragEnd: performance.now(),
-            totalMoves: validMoves.length,
-            averageSpeed: validMoves.length ? 
-                validMoves.reduce((acc, m) => acc + (m.speed || 0), 0) / validMoves.length : 
-                null
-        }
-    };
-
+  };
+  
+  try {
+    payload.telemetry = telemetry.slice(-600);
+  } catch (e) {
+    payload.telemetry = [];
+  }
+  
+  if (challengeData._challengeBlob && challengeData._challengeBlob.pow_difficulty && challengeData._challengeBlob.pow_difficulty > 0) {
     try {
-        const res = await fetch(`${API_BASE}/verify`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Server responded with ${res.status}: ${errorText}`);
-        }
-
-        const data = await res.json();
-        console.log('Verification response:', data);
-
-        if (data.ok) {
-            status.textContent = '✅ Verified!';
-            status.style.color = 'green';
-            success = true;
-        } else {
-            status.textContent = '❌ Verification failed. Please try again.';
-            status.style.color = 'red';
-        }
-    } catch (err) {
-        console.error('Verification error:', err);
-        status.textContent = '❌ Please try again.';
+      status.textContent = '⚙️ Computing proof-of-work…';
+      payload.pow_nonce = await computePowNonce(challengeData.challenge, challengeData._challengeBlob.pow_difficulty);
+    } catch (e) {
+      console.error('POW computation failed:', e);
+      status.textContent = '❌ Unable to compute POW';
+      status.className = 'error';
+      return;
     }
+  }
+  
+  let attempts = 0;
+  let lastErr = null;
+  
+  while (attempts < 3) {
+    try {
+      console.log('Verify payload (sending):', payload);
+      const res = await fetch(`${API_BASE}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const text = await res.text();
+      console.log('Raw verify response status:', res.status, 'text:', text);
+      
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { ok: false, message: text };
+      }
+      
+      if (!res.ok) {
+        lastErr = data;
+        if (res.status >= 500) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 300 * attempts));
+          continue;
+        }
+        status.textContent = `❌ Error: ${data.message || 'Verification failed'}`;
+        status.className = 'error';
+        submissionLocked = false; // Allow retry on error
+        submitBtn.disabled = false;
+        return;
+      }
+      
+      if (data.ok) {
+        status.textContent = '✅ Verified successfully! You may close this window.';
+        status.className = 'success';
+        success = true;
+        submissionLocked = true; // Permanently lock on success
+        submitBtn.disabled = true;
+        submitBtn.style.cursor = 'not-allowed';
+        submitBtn.textContent = '✓ Complete';
+        
+        // Use server-returned confidence
+        let confPct = null;
+        if (data.confidence !== undefined && data.confidence !== null) {
+          confPct = Math.max(0, Math.min(100, Number(data.confidence)));
+        } else {
+          confPct = Math.max(0, Math.min(100, Math.round((1 - (error / (challengeData._challengeBlob?.tolerance || 8))) * 100)));
+        }
+        document.getElementById('confidence').textContent = confPct + '%';
+        return;
+      }
+      
+      status.textContent = `❌ Error: ${data.message || 'Verification failed'}`;
+      status.className = 'error';
+      submissionLocked = false; // Allow retry on error
+      submitBtn.disabled = false;
+      return;
+    } catch (err) {
+      lastErr = err;
+      attempts++;
+      await new Promise(r => setTimeout(r, 300 * attempts));
+    }
+  }
+  
+  console.error('Verification error after retries:', lastErr);
+  status.textContent = '❌ Network or server error. Try again later.';
+  status.className = 'error';
+  submissionLocked = false; // Allow retry on network error
+  submitBtn.disabled = false;
 }
 
-// --- submit ---
 function attemptSubmit() {
-    if(!beepActive) {
-        status.textContent = '⏰ Too early! Wait for the beep.';
-        return;
-    }
-    
-    if(!challengeData) {
-        status.textContent = '⚠️ Challenge not loaded';
-        return;
-    }
-
-    const normalizedPointer = normalizeAngle(pointerAngle);
-    const normalizedTarget = normalizeAngle(challengeData._targetAngle);
-    const error = angleDiffAbs(normalizedPointer, normalizedTarget);
-    const reaction = performance.now() - beepStart;
-
-    console.log('Attempt details:', {
-        rawPointerAngle: pointerAngle,
-        normalizedPointer,
-        rawTargetAngle: challengeData._targetAngle,
-        normalizedTarget,
-        error,
-        reaction
-    });
-
-    verifyAttempt(error, reaction);
+  // Prevent multiple submissions
+  if (submissionLocked) {
+    status.textContent = '🔒 Submission already in progress. Please wait.';
+    status.className = 'error';
+    return;
+  }
+  
+  if (!beepActive) {
+    status.textContent = '⚠️ Too early! Wait for the beep.';
+    status.className = 'error';
+    return;
+  }
+  
+  if (!challengeData) {
+    status.textContent = '⚠️ Challenge not loaded';
+    status.className = 'error';
+    return;
+  }
+  
+  // Lock submission immediately to prevent race conditions
+  submissionLocked = true;
+  submitBtn.disabled = true;
+  status.textContent = '⏳ Verifying…';
+  status.className = '';
+  
+  const normalizedPointer = normalizeAngle(pointerAngle);
+  const normalizedTarget = normalizeAngle(challengeData._targetAngle);
+  const error = angleDiffAbs(normalizedPointer, normalizedTarget);
+  const reaction = performance.now() - beepStart;
+  
+  verifyAttempt(error, reaction);
 }
 
 submitBtn.addEventListener('click', attemptSubmit);
 
-// --- fingerprint ---
-function collectFingerprint() {
-    return {
-        screen: {
-            width: screen.width,
-            height: screen.height,
-            colorDepth: screen.colorDepth,
-            orientation: screen.orientation?.type
-        },
-        browser: {
-            userAgent: navigator.userAgent,
-            language: navigator.language,
-            languages: navigator.languages,
-            platform: navigator.platform,
-            hardwareConcurrency: navigator.hardwareConcurrency,
-            deviceMemory: navigator.deviceMemory,
-            maxTouchPoints: navigator.maxTouchPoints
-        },
-        capabilities: {
-            touch: 'ontouchstart' in window,
-            webgl: !!document.createElement('canvas').getContext('webgl'),
-            canvas: !!document.createElement('canvas').getContext('2d'),
-            audio: !!window.AudioContext || !!window.webkitAudioContext
-        },
-        automation: {
-            webdriver: !!navigator.webdriver,
-            selenium: !!window.selenium,
-            headless: !window.chrome || !!window.chrome.webstore
-        }
-    };
+// Cache canvas fingerprint once per session to ensure consistency
+// Use sessionStorage for persistence across potential reloads
+let cachedCanvasFP = null;
+let cachedFullFingerprint = null;
+
+function getCachedCanvasFP() {
+  if (cachedCanvasFP) return cachedCanvasFP;
+  
+  // Try to load from sessionStorage
+  try {
+    const stored = sessionStorage.getItem('captcha_canvas_fp');
+    if (stored) {
+      cachedCanvasFP = stored;
+      return cachedCanvasFP;
+    }
+  } catch (e) {
+    // sessionStorage might be disabled
+  }
+  
+  // Generate new fingerprint
+  cachedCanvasFP = generateCanvasFingerprint();
+  
+  // Try to store for session persistence
+  try {
+    sessionStorage.setItem('captcha_canvas_fp', cachedCanvasFP);
+  } catch (e) {
+    // Ignore if sessionStorage is disabled
+  }
+  
+  return cachedCanvasFP;
 }
 
-// --- init ---
+// Enhanced fingerprint collection with canvas rendering signature
+function collectFingerprint() {
+  // If we already collected the full fingerprint this session, return cached version
+  if (cachedFullFingerprint) {
+    return cachedFullFingerprint;
+  }
+  
+  // Generate canvas fingerprint once and cache it
+  const canvasFP = getCachedCanvasFP();
+  
+  const fingerprint = {
+    screen: {
+      width: screen.width,
+      height: screen.height,
+      colorDepth: screen.colorDepth,
+      pixelRatio: window.devicePixelRatio,
+      orientation: screen.orientation?.type
+    },
+    browser: {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages,
+      platform: navigator.platform,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      deviceMemory: navigator.deviceMemory,
+      maxTouchPoints: navigator.maxTouchPoints,
+      vendor: navigator.vendor,
+      plugins: Array.from(navigator.plugins || []).map(p => p.name).slice(0, 5)
+    },
+    capabilities: {
+      touch: 'ontouchstart' in window,
+      webgl: !!document.createElement('canvas').getContext('webgl'),
+      canvas: !!document.createElement('canvas').getContext('2d'),
+      audio: !!window.AudioContext || !!window.webkitAudioContext,
+      indexedDB: !!window.indexedDB,
+      localStorage: !!window.localStorage
+    },
+    automation: {
+      webdriver: !!navigator.webdriver,
+      selenium: !!window.selenium || !!window._selenium || !!window.callSelenium,
+      headless: !window.chrome || !!window.chrome.webstore,
+      phantom: !!window._phantom || !!window.callPhantom,
+      nightmare: !!window.__nightmare
+    },
+    canvas: canvasFP,
+    timing: {
+      loadTime: performance.now(),
+      timeOrigin: performance.timeOrigin
+    }
+  };
+  
+  // Cache the full fingerprint for consistency throughout the session
+  cachedFullFingerprint = fingerprint;
+  
+  return fingerprint;
+}
+
+function generateCanvasFingerprint() {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 240;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw text with various styles
+    ctx.textBaseline = 'top';
+    ctx.font = '16px "Arial"';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(10, 1, 62, 20);
+    
+    ctx.fillStyle = '#069';
+    ctx.font = '13px "Courier New"';
+    ctx.fillText('Canvas FP 🎯', 2, 15);
+    
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.font = '18px Arial';
+    ctx.fillText('Align-Verify', 4, 35);
+    
+    // Extract data URL and hash it
+    const dataURL = canvas.toDataURL();
+    // Simple hash for fingerprint (first 32 chars of base64)
+    return dataURL.slice(22, 54);
+  } catch (e) {
+    return 'canvas-error';
+  }
+}
+
 draw();
 fetchChallenge();
 })();
