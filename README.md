@@ -1,4 +1,4 @@
-# 🎯 Align-on-Cue CAPTCHA v1.2# 🎯 Align-on-Cue CAPTCHA v1.2# 🎯 Align-on-Cue CAPTCHA v1.2
+# 🎯 Align-on-Cue CAPTCHA v1.2
 
 
 
