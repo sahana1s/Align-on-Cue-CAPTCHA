@@ -1,7 +1,7 @@
 {
-  "name": "antibot-captcha-server",
-  "version": "1.0.0",
-  "description": "Advanced anti-bot CAPTCHA verification server",
+  "name": "align-on-cue-captcha-server",
+  "version": "1.3.0",
+  "description": "Align-on-Cue CAPTCHA v1.3 - Advanced multi-layer human verification server with temporal analysis, micro-behavior detection, and visual cryptography",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

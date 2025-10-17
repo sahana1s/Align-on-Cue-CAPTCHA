@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Align on Cue - Human Verification</title>
+<title>Align on Cue v1.3 - Human Verification</title>
+<meta name="version" content="1.3.0">
+<meta name="description" content="Advanced CAPTCHA with multi-layer security: temporal analysis, micro-behavior detection, visual cryptography">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -817,7 +819,16 @@ body:not(.no-animations) button {
   <div class="stage-container">
     <canvas id="stage" width="320" height="320" aria-label="Alignment stage - drag to rotate the pointer" tabindex="0"></canvas>
     <canvas id="noise" width="320" height="320" aria-hidden="true"></canvas>
+    <!-- v1.3: Visual Cryptography Layer -->
+    <canvas id="cryptoLayer1" width="320" height="320" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); mix-blend-mode: multiply; opacity: 0.15; pointer-events: none;"></canvas>
+    <canvas id="cryptoLayer2" width="320" height="320" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); mix-blend-mode: screen; opacity: 0.1; pointer-events: none;"></canvas>
     <div id="cssNoise" aria-hidden="true"></div>
+    
+    <!-- v1.3: Honeypot Elements (invisible traps for bots) -->
+    <div id="honeypot1" style="position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0;" aria-hidden="true">
+      <button tabindex="-1">Click me</button>
+    </div>
+    <input type="text" id="honeypot2" name="website" value="" style="position: absolute; left: -9999px; opacity: 0;" tabindex="-1" aria-hidden="true" autocomplete="off">
   </div>
   
   <div class="info-bar">
@@ -885,7 +896,12 @@ body:not(.no-animations) button {
 </div>
 
 <script>
+/**
+ * Align-on-Cue CAPTCHA v1.3 Client
+ * Advanced Human Verification with Multi-Layer Security
+ */
 (function(){
+const VERSION = '1.3.0';
 const API_BASE = 'http://localhost:3000/api/v1';
 
 const canvas = document.getElementById('stage');
@@ -905,7 +921,24 @@ const cssNoise = document.getElementById('cssNoise');
 let telemetry = [];
 let submissionLocked = false; // Prevent multiple submissions
 
-function recordEvent(type, extra) { telemetry.push({ type, t: Date.now(), extra }); }
+// v1.3: Enhanced telemetry tracking
+let honeypotInteractions = {
+  invisibleClicked: false,
+  hiddenFieldFilled: false,
+  trapHovered: false
+};
+let microMovements = [];
+let clickTimings = [];
+let canvasDataExtractionAttempts = 0;
+
+function recordEvent(type, extra) { 
+  telemetry.push({ type, t: Date.now(), extra });
+  
+  // v1.3: Track click types for rhythm analysis
+  if (type === 'click' || type === 'pointerdown') {
+    clickTimings.push(Date.now());
+  }
+}
 
 // Enhanced color palettes with better accessibility
 const palettes = [
@@ -1187,6 +1220,112 @@ function updateNoiseParams(seed, targetAngle) {
 
 initNoiseOverlay();
 
+// ========== v1.3: VISUAL CRYPTOGRAPHY LAYERS ==========
+function initVisualCryptography() {
+  try {
+    const layer1 = document.getElementById('cryptoLayer1');
+    const layer2 = document.getElementById('cryptoLayer2');
+    
+    if (!layer1 || !layer2) return;
+    
+    const ctx1 = layer1.getContext('2d');
+    const ctx2 = layer2.getContext('2d');
+    
+    // Generate random pattern that creates interference for CV tools
+    function drawCryptoPattern(ctx, offset) {
+      const w = ctx.canvas.width;
+      const h = ctx.canvas.height;
+      const imgData = ctx.createImageData(w, h);
+      
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const noise = Math.random() > 0.5 ? 1 : 0;
+          const val = ((x + y + offset) % 2 === 0 ? noise : 1 - noise) * 255;
+          imgData.data[i] = val;
+          imgData.data[i + 1] = val;
+          imgData.data[i + 2] = val;
+          imgData.data[i + 3] = 30; // Low alpha
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+    
+    drawCryptoPattern(ctx1, 0);
+    drawCryptoPattern(ctx2, 1);
+    
+    // Animate to defeat screenshot attacks
+    let frame = 0;
+    setInterval(() => {
+      frame++;
+      if (frame % 60 === 0) {
+        drawCryptoPattern(ctx1, Math.floor(Math.random() * 10));
+        drawCryptoPattern(ctx2, Math.floor(Math.random() * 10));
+      }
+    }, 1000);
+    
+  } catch (e) {
+    console.warn('Visual cryptography init failed', e);
+  }
+}
+
+initVisualCryptography();
+
+// ========== v1.3: HONEYPOT TRAPS ==========
+function initHoneypots() {
+  // Trap 1: Invisible button
+  const trap1 = document.getElementById('honeypot1');
+  if (trap1) {
+    trap1.addEventListener('click', () => {
+      honeypotInteractions.invisibleClicked = true;
+      recordEvent('honeypot_clicked', { trap: 1 });
+    });
+    trap1.addEventListener('mouseenter', () => {
+      honeypotInteractions.trapHovered = true;
+    });
+  }
+  
+  // Trap 2: Hidden form field
+  const trap2 = document.getElementById('honeypot2');
+  if (trap2) {
+    trap2.addEventListener('input', () => {
+      honeypotInteractions.hiddenFieldFilled = true;
+      recordEvent('honeypot_filled', { trap: 2 });
+    });
+  }
+  
+  // Trap 3: Canvas data extraction detection
+  const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+  CanvasRenderingContext2D.prototype.getImageData = function(...args) {
+    if (this.canvas.id === 'stage' || this.canvas.id === 'noise') {
+      canvasDataExtractionAttempts++;
+      recordEvent('canvas_extraction_attempt');
+    }
+    return originalGetImageData.apply(this, args);
+  };
+}
+
+initHoneypots();
+
+// ========== v1.3: MICRO-MOVEMENT TRACKING ==========
+function trackMicroMovements(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  microMovements.push({
+    x: x,
+    y: y,
+    timestamp: Date.now(),
+    type: e.type
+  });
+  
+  // Keep only last 100 movements
+  if (microMovements.length > 100) {
+    microMovements.shift();
+  }
+}
+
 // Enhanced pointer event handling with acceleration tracking
 canvas.addEventListener('pointerdown', e => {
   resumeAudioContextOnce();
@@ -1195,12 +1334,16 @@ canvas.addEventListener('pointerdown', e => {
   startX = e.clientX;
   startAngle = pointerAngle;
   moveHistory = [];
+  
+  trackMicroMovements(e); // v1.3: Track micro-movements
   lastMoveTime = performance.now();
   recordEvent('pointerdown', { x: e.clientX, y: e.clientY, pressure: e.pressure });
 });
 
 canvas.addEventListener('pointermove', e => {
   if (!dragging || e.pointerId !== pointerId) return;
+  
+  trackMicroMovements(e); // v1.3: Track all movements
   
   const now = performance.now();
   const rect = canvas.getBoundingClientRect();
@@ -1220,7 +1363,8 @@ canvas.addEventListener('pointermove', e => {
     angle: pointerAngle,
     speed: speed * 1000,
     angularVelocity: angularVel * 1000,
-    dt: dt
+    dt: dt,
+    type: 'move' // v1.3: Add type for analysis
   });
   
   if (moveHistory.length > 400) moveHistory.shift();
@@ -1617,10 +1761,27 @@ async function verifyAttempt(error, reaction) {
     }
   };
   
+  // v1.3: Enhanced telemetry with new security features
   try {
-    payload.telemetry = telemetry.slice(-600);
+    payload.telemetry = {
+      events: telemetry.slice(-600),
+      automation: detectAutomation(),
+      honeypot: {
+        invisibleClicked: honeypotInteractions.invisibleClicked,
+        hiddenFieldFilled: honeypotInteractions.hiddenFieldFilled,
+        trapHovered: honeypotInteractions.trapHovered
+      },
+      canvasAnalysis: {
+        dataExtractionAttempts: canvasDataExtractionAttempts,
+        noiseLayerMissing: !document.getElementById('noise'),
+        layersMismatch: false // Could add layer verification here
+      },
+      microMovements: microMovements.slice(-100),
+      clickTimings: clickTimings.slice(-20),
+      version: VERSION
+    };
   } catch (e) {
-    payload.telemetry = [];
+    payload.telemetry = { error: e.message, version: VERSION };
   }
   
   if (challengeData._challengeBlob && challengeData._challengeBlob.pow_difficulty && challengeData._challengeBlob.pow_difficulty > 0) {
@@ -1779,6 +1940,21 @@ function getCachedCanvasFP() {
 }
 
 // Enhanced fingerprint collection with canvas rendering signature
+// v1.3: Extract automation detection separately
+function detectAutomation() {
+  return {
+    webdriver: !!navigator.webdriver,
+    selenium: !!window.selenium || !!window._selenium || !!window.callSelenium,
+    headless: !window.chrome || !!window.chrome.webstore,
+    phantom: !!window._phantom || !!window.callPhantom,
+    nightmare: !!window.__nightmare,
+    // Additional v1.3 checks
+    puppeteer: !!window.__PUPPETEER__ || !!navigator.webdriver,
+    playwright: !!window.__PW_inspect || !!window.playwright,
+    chromeExtensions: !!(window.chrome && window.chrome.runtime && window.chrome.runtime.id)
+  };
+}
+
 function collectFingerprint() {
   // If we already collected the full fingerprint this session, return cached version
   if (cachedFullFingerprint) {

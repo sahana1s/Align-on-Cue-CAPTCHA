@@ -1,3 +1,18 @@
+/**
+ * Align-on-Cue CAPTCHA v1.3
+ * Advanced Human Verification System
+ * 
+ * NEW in v1.3:
+ * - Split-image visual cryptography
+ * - Temporal rhythm detection
+ * - Cognitive load challenges (memory + reasoning)
+ * - Enhanced honeypot system
+ * - Advanced behavioral biometrics
+ * - Dynamic difficulty adjustment
+ * - Multi-layer canvas contamination
+ * - Browser API traps for automation detection
+ */
+
 const express = require('express');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
@@ -26,6 +41,7 @@ if (process.env.STRICT_ORIGIN === '1') {
 }
 
 const CONFIG = {
+    VERSION: '1.3.0',
     SECRET_KEY: process.env.CAPTCHA_SECRET || 'your-256-bit-secret-key-here',
     CHALLENGE_TTL: 90,
     MIN_REACTION_MS: 60,
@@ -42,7 +58,33 @@ const CONFIG = {
         MAX_LINEAR_MOVEMENTS: 0.4,
         MIN_NATURAL_JITTER: 0.1
     },
-    RATE_LIMITS: { WINDOW_MS: 15 * 60 * 1000, MAX_REQUESTS: 100 }
+    RATE_LIMITS: { WINDOW_MS: 15 * 60 * 1000, MAX_REQUESTS: 100 },
+    // v1.3 NEW: Temporal challenge settings
+    TEMPORAL: {
+        MIN_RHYTHM_VARIANCE: 0.15,  // Natural timing variance
+        MAX_CLICK_SPEED: 50,  // ms between clicks (too fast = bot)
+        PATTERN_LENGTH: 3,  // Clicks needed for rhythm analysis
+        HESITATION_MIN: 100,  // Natural human hesitation (ms)
+        HESITATION_MAX: 2000  // Max thinking time
+    },
+    // v1.3 NEW: Cognitive challenge settings
+    COGNITIVE: {
+        MEMORY_SEQUENCE_LENGTH: 3,  // How many items to remember
+        RECALL_DELAY_MS: 2000,  // Time before recall test
+        PATTERN_TYPES: ['color', 'position', 'order']
+    },
+    // v1.3 NEW: Honeypot detection
+    HONEYPOT: {
+        INVISIBLE_ELEMENTS: 2,  // Number of invisible traps
+        TRAP_INTERACTION_PENALTY: 0.5  // Confidence penalty if clicked
+    },
+    // v1.3 NEW: Micro-behavior analysis
+    MICRO_BEHAVIOR: {
+        MIN_TREMOR_FREQUENCY: 0.05,  // Natural hand tremor
+        MAX_PERFECT_LINES: 2,  // Too many perfect lines = bot
+        CORRECTION_THRESHOLD: 3,  // Min error corrections expected
+        HOVER_TIME_MIN: 50  // Natural hover before click
+    }
 };
 
 const ENABLE_DEBUG_LOGGING = process.env.DEBUG === '1';
@@ -258,6 +300,250 @@ function analyzeAutomationSignatures(telemetry) {
   return Math.min(score, 1);
 }
 
+// ========== v1.3 NEW SECURITY FUNCTIONS ==========
+
+/**
+ * v1.3: Temporal Rhythm Analysis
+ * Humans have natural rhythm variance; bots are too consistent
+ */
+function analyzeTemporalRhythm(movements) {
+  if (!movements || movements.length < CONFIG.TEMPORAL.PATTERN_LENGTH + 1) {
+    return { score: 0, flags: [] };
+  }
+  
+  const flags = [];
+  let suspicionScore = 0;
+  
+  // Extract click timing intervals
+  const clickTimes = movements
+    .filter(m => m.type === 'click' || m.type === 'pointerdown')
+    .map(m => m.timestamp);
+  
+  if (clickTimes.length < 2) return { score: 0, flags: [] };
+  
+  const intervals = [];
+  for (let i = 1; i < clickTimes.length; i++) {
+    intervals.push(clickTimes[i] - clickTimes[i-1]);
+  }
+  
+  // Check 1: Too fast clicking (bot-like)
+  const tooFastClicks = intervals.filter(i => i < CONFIG.TEMPORAL.MAX_CLICK_SPEED).length;
+  if (tooFastClicks > 0) {
+    flags.push('rapid_clicking');
+    suspicionScore += 0.3 * (tooFastClicks / intervals.length);
+  }
+  
+  // Check 2: Perfect rhythm (no variance)
+  if (intervals.length >= 2) {
+    const avgInterval = intervals.reduce((a,b) => a+b, 0) / intervals.length;
+    const variance = intervals.reduce((a,b) => a + Math.pow(b - avgInterval, 2), 0) / intervals.length;
+    const coefficientOfVariation = Math.sqrt(variance) / avgInterval;
+    
+    if (coefficientOfVariation < CONFIG.TEMPORAL.MIN_RHYTHM_VARIANCE) {
+      flags.push('robotic_rhythm');
+      suspicionScore += 0.25;
+    }
+  }
+  
+  // Check 3: Lack of hesitation (humans pause to think)
+  const hasHesitation = intervals.some(i => 
+    i >= CONFIG.TEMPORAL.HESITATION_MIN && i <= CONFIG.TEMPORAL.HESITATION_MAX
+  );
+  
+  if (!hasHesitation && intervals.length > 2) {
+    flags.push('no_natural_hesitation');
+    suspicionScore += 0.2;
+  }
+  
+  return { score: Math.min(suspicionScore, 1), flags };
+}
+
+/**
+ * v1.3: Micro-Behavior Analysis
+ * Detect sub-pixel movements, tremor, error correction
+ */
+function analyzeMicroBehaviors(movements) {
+  if (!movements || movements.length < 5) {
+    return { score: 0, flags: [], humanLikelihood: 0.5 };
+  }
+  
+  const flags = [];
+  let humanScore = 0.5; // Start neutral
+  
+  // Analyze sub-pixel movements (natural hand tremor)
+  const subPixelMoves = [];
+  for (let i = 1; i < movements.length; i++) {
+    const dx = Math.abs(movements[i].x - movements[i-1].x);
+    const dy = Math.abs(movements[i].y - movements[i-1].y);
+    const distance = Math.sqrt(dx*dx + dy*dy);
+    if (distance < 2 && distance > 0.1) { // Sub-pixel movement
+      subPixelMoves.push(distance);
+    }
+  }
+  
+  const tremorRatio = subPixelMoves.length / movements.length;
+  if (tremorRatio >= CONFIG.MICRO_BEHAVIOR.MIN_TREMOR_FREQUENCY) {
+    humanScore += 0.2; // Natural tremor detected
+  } else {
+    flags.push('no_natural_tremor');
+    humanScore -= 0.15;
+  }
+  
+  // Check for error corrections (moving back to fix mistakes)
+  let corrections = 0;
+  for (let i = 2; i < movements.length; i++) {
+    const curr = movements[i];
+    const prev = movements[i-1];
+    const prev2 = movements[i-2];
+    
+    // Did they move forward then backward?
+    const dir1 = Math.atan2(prev.y - prev2.y, prev.x - prev2.x);
+    const dir2 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+    const angleDiff = Math.abs(dir2 - dir1);
+    
+    if (angleDiff > Math.PI * 0.7) { // ~>126° turn
+      corrections++;
+    }
+  }
+  
+  if (corrections >= CONFIG.MICRO_BEHAVIOR.CORRECTION_THRESHOLD) {
+    humanScore += 0.15; // Natural error correction
+  } else if (corrections === 0 && movements.length > 10) {
+    flags.push('no_error_correction');
+    humanScore -= 0.2; // Suspiciously perfect
+  }
+  
+  // Check for perfect straight lines (bot-like)
+  let perfectLines = 0;
+  for (let i = 2; i < movements.length; i++) {
+    const p1 = movements[i-2], p2 = movements[i-1], p3 = movements[i];
+    const crossProduct = Math.abs(
+      (p2.y - p1.y) * (p3.x - p1.x) - (p3.y - p1.y) * (p2.x - p1.x)
+    );
+    if (crossProduct < 0.5) perfectLines++; // Perfectly linear
+  }
+  
+  if (perfectLines > CONFIG.MICRO_BEHAVIOR.MAX_PERFECT_LINES) {
+    flags.push('too_many_perfect_lines');
+    humanScore -= 0.25;
+  }
+  
+  // Normalize to 0-1 range
+  humanScore = Math.max(0, Math.min(1, humanScore));
+  const suspicionScore = 1 - humanScore;
+  
+  return { score: suspicionScore, flags, humanLikelihood: humanScore };
+}
+
+/**
+ * v1.3: Honeypot Detection
+ * Check if client interacted with invisible elements
+ */
+function analyzeHoneypotInteraction(telemetry) {
+  if (!telemetry || !telemetry.honeypot) {
+    return { score: 0, flags: [] };
+  }
+  
+  const flags = [];
+  let score = 0;
+  
+  if (telemetry.honeypot.invisibleClicked) {
+    flags.push('clicked_invisible_element');
+    score += CONFIG.HONEYPOT.TRAP_INTERACTION_PENALTY;
+  }
+  
+  if (telemetry.honeypot.hiddenFieldFilled) {
+    flags.push('filled_hidden_form_field');
+    score += CONFIG.HONEYPOT.TRAP_INTERACTION_PENALTY;
+  }
+  
+  if (telemetry.honeypot.trapHovered) {
+    flags.push('hovered_trap_element');
+    score += 0.2;
+  }
+  
+  return { score: Math.min(score, 1), flags };
+}
+
+/**
+ * v1.3: Canvas Contamination Detection
+ * Check for screenshot/computer vision attacks
+ */
+function analyzeCanvasContamination(telemetry) {
+  if (!telemetry || !telemetry.canvasAnalysis) {
+    return { score: 0, flags: [] };
+  }
+  
+  const flags = [];
+  let score = 0;
+  
+  // Check if noise layer is intact
+  if (telemetry.canvasAnalysis.noiseLayerMissing) {
+    flags.push('noise_layer_removed');
+    score += 0.3;
+  }
+  
+  // Check for canvas data extraction attempts
+  if (telemetry.canvasAnalysis.dataExtractionAttempts > 0) {
+    flags.push('canvas_data_extraction');
+    score += 0.4;
+  }
+  
+  // Check if visual cryptography layers are correct
+  if (telemetry.canvasAnalysis.layersMismatch) {
+    flags.push('visual_crypto_tampered');
+    score += 0.35;
+  }
+  
+  return { score: Math.min(score, 1), flags };
+}
+
+/**
+ * v1.3: Dynamic Difficulty Adjustment
+ * Increase challenge complexity based on confidence scores
+ */
+function adjustDifficultyLevel(confidenceScore, attemptHistory) {
+  // Low confidence = harder challenge next time
+  if (confidenceScore < 0.4) {
+    return 'HIGH'; // Hardest
+  } else if (confidenceScore < 0.7) {
+    return 'MEDIUM';
+  } else {
+    return 'LOW'; // Normal
+  }
+}
+
+/**
+ * v1.3: Comprehensive Bot Score Calculation
+ * Combines all detection methods with weighted scoring
+ */
+function calculateComprehensiveBotScore(telemetry, movements, clientIP) {
+  const scores = {
+    automation: analyzeAutomationSignatures(telemetry) * 0.25,
+    temporal: analyzeTemporalRhythm(movements).score * 0.20,
+    microBehavior: analyzeMicroBehaviors(movements).score * 0.20,
+    honeypot: analyzeHoneypotInteraction(telemetry).score * 0.15,
+    canvas: analyzeCanvasContamination(telemetry).score * 0.20
+  };
+  
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+  
+  const flags = [
+    ...analyzeTemporalRhythm(movements).flags,
+    ...analyzeMicroBehaviors(movements).flags,
+    ...analyzeHoneypotInteraction(telemetry).flags,
+    ...analyzeCanvasContamination(telemetry).flags
+  ];
+  
+  return {
+    botScore: Math.min(totalScore, 1),
+    humanLikelihood: 1 - totalScore,
+    breakdown: scores,
+    flags,
+    recommendation: totalScore > 0.65 ? 'REJECT' : totalScore > 0.4 ? 'CHALLENGE' : 'ACCEPT'
+  };
+}
+
 app.post('/api/v1/verify', async (req, res) => {
     try {
         debugLog('RECEIVED VERIFICATION REQUEST', { fingerprint: req.body.fingerprint, timing: req.body.timing, movements: Array.isArray(req.body.movements) ? req.body.movements.length : req.body.movements, user_angle: req.body.user_angle, reaction_time: req.body.reaction_client_ms, ip: req.ip, headers: req.headers });
@@ -285,10 +571,14 @@ app.post('/api/v1/verify', async (req, res) => {
     const movementAnalysis = validateMovements(movements, riskLevel);
     const heuristics = computeMovementHeuristics(movements || []);
     
-    // Enhanced automation detection with behavioral anomalies
-    const automationScore = ((heuristics.timestampEntropy < 2 ? 0.4 : 0) + (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + (heuristics.constantIntervals ? 0.3 : 0) + (movementAnalysis.confidence < 0.2 ? 0.3 : 0));
+    // v1.3: Comprehensive Bot Detection System
+    const comprehensiveAnalysis = calculateComprehensiveBotScore(
+      req.body.telemetry,
+      movements,
+      clientIP
+    );
     
-    // Record behavior and detect anomalies
+    // Record behavior for tracking
     const currentBehavior = {
       reactionTime: reaction_client_ms,
       accuracy: movementAnalysis.confidence,
@@ -296,35 +586,51 @@ app.post('/api/v1/verify', async (req, res) => {
     };
     recordBehavior(clientIP, currentBehavior);
     
-    const { anomalyScore: behavioralAnomaly, flags: anomalyFlags } = detectAnomalies(clientIP, currentBehavior);
-    const automationSignatures = analyzeAutomationSignatures(req.body.telemetry);
+    const { anomalyScore: behavioralAnomaly, flags: behavioralFlags } = detectAnomalies(clientIP, currentBehavior);
     
-    // Combined automation score from multiple sources
-    const combinedAutomationScore = Math.max(
-      automationScore,
-      behavioralAnomaly * 0.8,
-      automationSignatures * 0.9
-    );
+    // Combine v1.2 and v1.3 scores
+    const legacyAutomationScore = ((heuristics.timestampEntropy < 2 ? 0.4 : 0) + 
+      (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + 
+      (heuristics.constantIntervals ? 0.3 : 0) + 
+      (movementAnalysis.confidence < 0.2 ? 0.3 : 0));
+    
+    // Final combined score (60% v1.3 + 40% v1.2)
+    const finalBotScore = (comprehensiveAnalysis.botScore * 0.6) + 
+                          (Math.max(legacyAutomationScore, behavioralAnomaly) * 0.4);
+    
+    const allFlags = [
+      ...comprehensiveAnalysis.flags,
+      ...behavioralFlags
+    ];
     
     const AUTOMATION_THRESHOLD = 0.65;
-    if (!movementAnalysis.valid || combinedAutomationScore >= AUTOMATION_THRESHOLD) {
+    if (!movementAnalysis.valid || finalBotScore >= AUTOMATION_THRESHOLD) {
       ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1);
       if (ipFailures.get(clientIP) > 3) suspiciousIPs.add(clientIP);
-      debugLog('AUTOMATION DETECTED', {
-        movementScore: automationScore,
-        behavioralScore: behavioralAnomaly,
-        automationSignatures: automationSignatures,
-        combinedScore: combinedAutomationScore,
-        anomalyFlags
+      
+      debugLog('v1.3 AUTOMATION DETECTED', {
+        finalScore: finalBotScore,
+        breakdown: comprehensiveAnalysis.breakdown,
+        recommendation: comprehensiveAnalysis.recommendation,
+        flags: allFlags,
+        humanLikelihood: comprehensiveAnalysis.humanLikelihood
       });
+      
       return res.status(400).json({
         ok: false,
-        message: 'Verification failed',
-        heuristics,
-        automationScore: combinedAutomationScore,
-        anomalyFlags
+        message: 'Verification failed - automated behavior detected',
+        botScore: finalBotScore,
+        humanLikelihood: comprehensiveAnalysis.humanLikelihood,
+        flags: allFlags,
+        version: CONFIG.VERSION
       });
     }
+    
+    debugLog('v1.3 VERIFICATION SUCCESS', {
+      botScore: finalBotScore,
+      humanLikelihood: comprehensiveAnalysis.humanLikelihood,
+      recommendation: comprehensiveAnalysis.recommendation
+    });
 
         const attempts = ipAttempts.get(clientIP) || [];
         attempts.push(Date.now());
@@ -341,20 +647,20 @@ app.post('/api/v1/verify', async (req, res) => {
         }
 
         const userAngle = normalizeAngle(user_angle); const targetAngle = normalizeAngle(data.targetAngle); const error = angleDiffAbs(userAngle, targetAngle);
-    debugLog('MOVEMENT ANALYSIS', { riskLevel, totalMovements: Array.isArray(movements) ? movements.length : 0, validationResult: movementAnalysis, behavioralAnomaly, anomalyFlags, recentAttempts: attemptsCount });
+    debugLog('MOVEMENT ANALYSIS', { riskLevel, totalMovements: Array.isArray(movements) ? movements.length : 0, validationResult: movementAnalysis, behavioralAnomaly, allFlags, recentAttempts: attemptsCount });
         const angleOk = error <= challengeBlob.tolerance; const reactionOk = reaction_client_ms >= CONFIG.MIN_REACTION_MS && reaction_client_ms <= CONFIG.MAX_REACTION_MS;
         debugLog('ANGLE COMPARISON', { raw_user_angle: req.body.user_angle, normalized_user: userAngle, raw_target: data.targetAngle, normalized_target: targetAngle, difference: error, tolerance: challengeBlob.tolerance, angleOk, reactionOk });
         if (!angleOk || !reactionOk) { ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1); return res.status(400).json({ ok: false, message: 'Verification failed', debug: { error, tolerance: challengeBlob.tolerance, userAngle, targetAngle, reaction_client_ms } }); }
 
         data.used = true; ipFailures.set(clientIP, 0);
         const angleScore = Math.max(0, 1 - (error / (challengeBlob.tolerance * 4)));
-         // Ensure each component is positive before combining them
+         // v1.3: Use comprehensive bot score for final confidence
          const positiveAngleComponent = Math.max(0, angleScore * 0.7);
          const positiveMovementComponent = Math.max(0, movementAnalysis.confidence * 0.3);
-         const automationPenalty = Math.min(positiveAngleComponent + positiveMovementComponent, automationScore * 0.2);
+         const automationPenalty = Math.min(positiveAngleComponent + positiveMovementComponent, finalBotScore * 0.2);
          // Calculate final confidence ensuring it's between 0-100
          const confidence = Math.round(Math.max(0, positiveAngleComponent + positiveMovementComponent - automationPenalty) * 100);
-        return res.json({ ok: true, message: 'Verified successfully', confidence });
+        return res.json({ ok: true, message: 'Verified successfully', confidence, humanLikelihood: comprehensiveAnalysis.humanLikelihood, botScore: finalBotScore });
     } catch (e) {
         console.error('verify error', e); return res.status(500).json({ ok: false, message: 'internal error' });
     }

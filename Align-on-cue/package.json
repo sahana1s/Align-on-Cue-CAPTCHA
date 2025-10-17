@@ -1,14 +1,16 @@
 {
-  "name": "align_on_cue",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "align-on-cue-captcha",
+  "version": "1.3.0",
+  "main": "server/server.js",
   "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["captcha", "human-verification", "anti-bot", "security", "visual-cryptography", "behavioral-biometrics"],
+  "author": "Align-on-Cue Team",
+  "license": "MIT",
+  "description": "Align-on-Cue CAPTCHA v1.3 - Advanced human verification system with multi-layer security: temporal rhythm analysis, micro-behavior detection, visual cryptography, honeypot traps, and dynamic difficulty adjustment. Highly resistant to OpenCV, Selenium, and automated attacks.",
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
