@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Align on Cue v1.3 - Human Verification</title>
-<meta name="version" content="1.3.0">
-<meta name="description" content="Advanced CAPTCHA with multi-layer security: temporal analysis, micro-behavior detection, visual cryptography">
+<title>Align on Cue v2.0 - Multi-Modal Verification</title>
+<meta name="version" content="2.0.2">
+<meta name="description" content="Advanced CAPTCHA with gesture recognition, stroke biometrics, and multi-modal challenges">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -21,26 +21,31 @@ body {
 }
 
 .container {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
-  padding: 40px;
-  max-width: 480px;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 28px;
+  padding: 48px;
+  max-width: 520px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: fadeIn 0.5s ease-out;
+  box-shadow: 0 25px 70px rgba(139, 92, 246, 0.35), 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.6s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-20px); }
+  from { opacity: 0; transform: translateY(-30px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #667eea;
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 12px;
   text-align: center;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
@@ -52,24 +57,25 @@ h1 {
 }
 
 .instruction {
-  background: #f1f5f9;
-  border-left: 4px solid #667eea;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 24px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%);
+  border-left: 4px solid #8b5cf6;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 28px;
   font-size: 14px;
   color: #334155;
   line-height: 1.7;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
 }
 
 .instruction strong {
-  color: #667eea;
+  color: #8b5cf6;
   font-weight: 600;
 }
 
 .stage-container {
   position: relative;
-  margin: 24px auto;
+  margin: 28px auto;
   width: 320px;
   height: 320px;
 }
@@ -77,15 +83,17 @@ h1 {
 canvas {
   display: block;
   margin: 0 auto;
-  background: #f8fafc;
+  background: linear-gradient(135deg, #faf5ff 0%, #fafafa 100%);
   border-radius: 50%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
   touch-action: none;
   cursor: grab;
+  border: 3px solid rgba(139, 92, 246, 0.1);
 }
 
 canvas:active {
   cursor: grabbing;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3), 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 #noise {
@@ -95,7 +103,7 @@ canvas:active {
   transform: translate(-50%, -50%);
   pointer-events: none;
   mix-blend-mode: overlay;
-  opacity: 0.3;
+  opacity: 0.25;
   border-radius: 50%;
 }
 
@@ -150,43 +158,48 @@ canvas:active {
 }
 
 #status.success {
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
+  border-left: 4px solid #10b981;
 }
 
 #status.error {
-  background: #fee2e2;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
   color: #991b1b;
+  border-left: 4px solid #ef4444;
 }
 
 #status.waiting {
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #92400e;
+  border-left: 4px solid #f59e0b;
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50% { opacity: 0.8; }
 }
 
 button {
   width: 100%;
-  padding: 16px;
+  padding: 18px;
   border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+  letter-spacing: 0.3px;
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.5);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
 }
 
 button:active:not(:disabled) {
@@ -194,8 +207,104 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* v2.0: Enhanced Gesture UI Styles */
+.gesture-container {
+  animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  border-radius: 20px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.gesture-instruction {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+  letter-spacing: 0.3px;
+}
+
+.gesture-canvas-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+#gestureCanvas {
+  display: block;
+  width: 400px; /* Fixed width instead of percentage */
+  height: 280px;
+  touch-action: none;
+  border: 3px solid rgba(139, 92, 246, 0.3);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: crosshair;
+  transition: all 0.3s ease;
+}
+
+#gestureCanvas:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 10px 28px rgba(139, 92, 246, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#gestureCanvas:active {
+  cursor: crosshair;
+  border-color: #8b5cf6;
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4), inset 0 2px 4px rgba(139, 92, 246, 0.1);
+}
+
+.gesture-feedback {
+  min-height: 24px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 0;
+  transition: all 0.3s ease;
+  color: #1e293b; /* Black text color for better visibility */
+}
+
+.gesture-feedback.ready {
+  color: #000000; /* Black text for "Draw now!" message */
+  font-weight: 700;
+}
+
+.gesture-feedback.waiting {
+  color: #475569; /* Dark gray for waiting message */
+  font-weight: 600;
+}
+
+.gesture-feedback.success {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.gesture-feedback.error {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.gesture-feedback.drawing {
+  color: #3b82f6;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .progress-ring {
@@ -452,30 +561,6 @@ canvas:focus {
 
 .timeout-warning {
   animation: pulse 1s infinite;
-}
-
-.difficulty-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-left: 8px;
-}
-
-.difficulty-easy {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.difficulty-medium {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.difficulty-hard {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 .settings-btn {
@@ -830,6 +915,20 @@ body:not(.no-animations) button {
     </div>
     <input type="text" id="honeypot2" name="website" value="" style="position: absolute; left: -9999px; opacity: 0;" tabindex="-1" aria-hidden="true" autocomplete="off">
   </div>
+
+  <!-- v2.0: Gesture Drawing Stage -->
+  <div id="gestureStage" class="gesture-container" style="display: none; margin-top: 24px;">
+    <div class="gesture-instruction" id="gestureInstruction">
+      <strong>Step 2/2:</strong> <span id="gestureText">Draw a circle around the dot</span>
+    </div>
+    <div class="gesture-canvas-wrapper">
+      <canvas id="gestureCanvas" width="400" height="280"></canvas>
+      <div id="gestureTarget" style="position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);"></div>
+    </div>
+    <div class="gesture-feedback" id="gestureFeedback">
+      <span id="gestureProgress">Ready to draw...</span>
+    </div>
+  </div>
   
   <div class="info-bar">
     <div class="info-item">
@@ -840,7 +939,6 @@ body:not(.no-animations) button {
       <span class="info-label">Confidence:</span>
       <span class="info-value" id="confidence">--</span>
     </div>
-    <div class="info-item" id="difficulty-display"></div>
   </div>
   
   <div id="status" role="status" aria-live="polite" aria-atomic="true">Loading challenge…</div>
@@ -897,12 +995,12 @@ body:not(.no-animations) button {
 
 <script>
 /**
- * Align-on-Cue CAPTCHA v1.3 Client
- * Advanced Human Verification with Multi-Layer Security
+ * Align-on-Cue CAPTCHA v2.0 Client
+ * Multi-Modal Human Verification with Gesture Recognition
  */
 (function(){
-const VERSION = '1.3.0';
-const API_BASE = 'http://localhost:3000/api/v1';
+const VERSION = '2.0.2';
+const API_BASE = 'http://localhost:3000/api/v2';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -930,6 +1028,19 @@ let honeypotInteractions = {
 let microMovements = [];
 let clickTimings = [];
 let canvasDataExtractionAttempts = 0;
+
+// v2.0 NEW: Gesture tracking variables
+let gestureEnabled = false;
+let gestureType = 'circle'; // 'circle', 'swipe', 'trace'
+let gestureStrokes = []; // Array of stroke arrays
+let currentStroke = []; // Current drawing stroke
+let isDrawing = false;
+let gestureCanvas = null;
+let gestureCtx = null;
+let gestureCompleted = false;
+let challengeDifficulty = 'EASY';
+let gestureBeepActive = false; // NEW: Waiting for gesture beep
+let gestureCanDraw = false; // NEW: Can user draw after beep
 
 function recordEvent(type, extra) { 
   telemetry.push({ type, t: Date.now(), extra });
@@ -1024,10 +1135,12 @@ function angleDiffAbs(a, b) {
 }
 
 function computeTargetAngle(seed) {
+  if (!seed) return Math.floor(Math.random() * 180) - 90;
   const array = new Uint8Array(32);
-  for (let i = 0; i < seed.toString().length; i++) array[i] = seed.toString().charCodeAt(i);
+  const seedStr = seed.toString();
+  for (let i = 0; i < seedStr.length; i++) array[i] = seedStr.charCodeAt(i);
   const hashArray = new Uint32Array(array.buffer);
-  return hashArray[0] % 360;
+  return (hashArray[0] % 180) - 90; // Match server range: -90 to 90
 }
 
 let flashAlpha = 0;
@@ -1462,14 +1575,6 @@ function startRemainingTimer(ttlSeconds) {
 
 // ========== ACCESSIBILITY & SETTINGS ==========
 
-let currentDifficulty = 'easy'; // easy, medium, hard
-
-const difficultyLevels = {
-  easy: { tolerance: 10, minMoves: 3, label: 'Easy' },
-  medium: { tolerance: 6, minMoves: 8, label: 'Medium' },
-  hard: { tolerance: 3, minMoves: 15, label: 'Hard' }
-};
-
 // Load user preferences from localStorage
 function loadPreferences() {
   try {
@@ -1544,13 +1649,6 @@ function showGuide(step) {
   nextBtn.textContent = step === guideSteps.length - 1 ? 'Start Verifying' : 'Next';
   overlay.style.display = 'flex';
   currentGuideStep = step;
-}
-
-// Difficulty display
-function updateDifficultyDisplay() {
-  const display = document.getElementById('difficulty-display');
-  const level = difficultyLevels[currentDifficulty];
-  display.innerHTML = `<span class="difficulty-badge difficulty-${currentDifficulty}">${level.label}</span>`;
 }
 
 // Settings panel controls
@@ -1650,9 +1748,328 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize on page load
 window.addEventListener('load', () => {
+  console.log('[INIT] Page loaded, initializing...');
   initializeGuide();
-  updateDifficultyDisplay();
+  // updateDifficultyDisplay(); // REMOVED: Difficulty system removed
+  initGestureCanvas(); // v2.0: Initialize gesture canvas
+  console.log('[INIT] Initialization complete');
 });
+
+// ========== v2.0 GESTURE RECOGNITION FUNCTIONS ==========
+
+/**
+ * v2.0: Initialize gesture drawing canvas
+ */
+function initGestureCanvas() {
+  gestureCanvas = document.getElementById('gestureCanvas');
+  if (!gestureCanvas) {
+    console.error('[GESTURE] Canvas element not found!');
+    return;
+  }
+  
+  console.log('[GESTURE] Initializing gesture canvas', gestureCanvas);
+  
+  gestureCtx = gestureCanvas.getContext('2d');
+  
+  // Enhanced drawing settings for better visual feedback
+  gestureCtx.lineWidth = 4; // Thicker line for better visibility
+  gestureCtx.lineCap = 'round'; // Smooth round endpoints
+  gestureCtx.lineJoin = 'round'; // Smooth corners
+  gestureCtx.strokeStyle = '#8b5cf6'; // Purple color matching new theme
+  gestureCtx.shadowBlur = 2; // Subtle shadow for depth
+  gestureCtx.shadowColor = 'rgba(139, 92, 246, 0.3)';
+  
+  console.log('[GESTURE] Adding event listeners to canvas');
+  
+  // Pointer events for drawing
+  gestureCanvas.addEventListener('pointerdown', startGesture);
+  gestureCanvas.addEventListener('pointermove', continueGesture);
+  gestureCanvas.addEventListener('pointerup', endGesture);
+  gestureCanvas.addEventListener('pointercancel', endGesture);
+  
+  // Test event listener to verify events are firing
+  gestureCanvas.addEventListener('click', (e) => {
+    console.log('[GESTURE] Canvas clicked!', e);
+  });
+  
+  console.log('[GESTURE] Canvas initialized successfully');
+}
+
+/**
+ * v2.0: Start drawing gesture
+ */
+function startGesture(e) {
+  console.log('[GESTURE] startGesture called. enabled:', gestureEnabled, 'completed:', gestureCompleted, 'canDraw:', gestureCanDraw);
+  
+  if (!gestureEnabled || gestureCompleted) return;
+  
+  // NEW: Prevent drawing before gesture beep
+  if (!gestureCanDraw) {
+    console.log('[GESTURE] Drawing blocked - waiting for beep');
+    updateGestureFeedback('⏳ Wait for the beep first!', 'waiting');
+    return;
+  }
+  
+  console.log('[GESTURE] Starting to draw');
+  isDrawing = true;
+  gestureCanvas.setPointerCapture(e.pointerId);
+  
+  const rect = gestureCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const pressure = e.pressure || 0.5;
+  
+  currentStroke = [{
+    x: x,
+    y: y,
+    pressure: pressure,
+    timestamp: Date.now()
+  }];
+  
+  gestureCtx.beginPath();
+  gestureCtx.moveTo(x, y);
+  
+  updateGestureFeedback('Drawing...', 'drawing');
+  recordEvent('gesture_start', { type: gestureType, x, y });
+}
+
+/**
+ * v2.0: Continue drawing gesture
+ */
+function continueGesture(e) {
+  if (!isDrawing) return;
+  
+  const rect = gestureCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const pressure = e.pressure || 0.5;
+  
+  currentStroke.push({
+    x: x,
+    y: y,
+    pressure: pressure,
+    timestamp: Date.now()
+  });
+  
+  // Draw on canvas
+  gestureCtx.lineTo(x, y);
+  gestureCtx.stroke();
+}
+
+/**
+ * v2.0: End drawing gesture
+ */
+function endGesture(e) {
+  if (!isDrawing) return;
+  
+  isDrawing = false;
+  gestureCanvas.releasePointerCapture(e.pointerId);
+  
+  if (currentStroke.length >= 5) {
+    gestureStrokes.push([...currentStroke]);
+    recordEvent('gesture_complete', { 
+      type: gestureType, 
+      points: currentStroke.length,
+      duration: currentStroke[currentStroke.length - 1].timestamp - currentStroke[0].timestamp
+    });
+    
+    // Validate gesture shape
+    const validation = validateGestureClient(currentStroke, gestureType);
+    
+    if (validation.valid) {
+      updateGestureFeedback('✓ Gesture completed!', 'success');
+      gestureCompleted = true;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Verification';
+    } else {
+      updateGestureFeedback(`Try again: ${validation.reason}`, 'error');
+      setTimeout(() => {
+        clearGestureCanvas();
+        updateGestureFeedback('Draw again...', '');
+      }, 1500);
+    }
+  } else {
+    updateGestureFeedback('Too short, try again', 'error');
+    setTimeout(() => {
+      clearGestureCanvas();
+      updateGestureFeedback('Ready to draw...', '');
+    }, 1000);
+  }
+  
+  currentStroke = [];
+}
+
+/**
+ * v2.0: Client-side gesture validation (lenient)
+ */
+function validateGestureClient(points, type) {
+  if (points.length < 10) {
+    return { valid: false, reason: 'too few points' };
+  }
+  
+  switch (type) {
+    case 'circle':
+      return validateCircleClient(points);
+    case 'swipe':
+      return validateSwipeClient(points);
+    default:
+      return { valid: true }; // Unknown type, let server decide
+  }
+}
+
+/**
+ * v2.0: Validate circle shape (client-side)
+ */
+function validateCircleClient(points) {
+  // Calculate centroid
+  const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+  const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+  
+  // Calculate radii
+  const radii = points.map(p => {
+    const dx = p.x - centerX;
+    const dy = p.y - centerY;
+    return Math.sqrt(dx * dx + dy * dy);
+  });
+  
+  const avgRadius = radii.reduce((a, b) => a + b, 0) / radii.length;
+  const variance = radii.reduce((sum, r) => sum + Math.pow(r - avgRadius, 2), 0) / radii.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const circularity = avgRadius > 0 ? 1 - (stdDev / avgRadius) : 0;
+  
+  if (circularity < 0.5) {
+    return { valid: false, reason: 'shape not round enough' };
+  }
+  
+  if (avgRadius < 20) {
+    return { valid: false, reason: 'circle too small' };
+  }
+  
+  return { valid: true, circularity, radius: avgRadius };
+}
+
+/**
+ * v2.0: Validate swipe gesture (client-side)
+ */
+function validateSwipeClient(points) {
+  const startPoint = points[0];
+  const endPoint = points[points.length - 1];
+  const dx = endPoint.x - startPoint.x;
+  const dy = endPoint.y - startPoint.y;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  
+  if (length < 50) {
+    return { valid: false, reason: 'swipe too short' };
+  }
+  
+  return { valid: true, length };
+}
+
+/**
+ * v2.0: Clear gesture canvas
+ */
+function clearGestureCanvas() {
+  if (!gestureCtx) return;
+  gestureCtx.clearRect(0, 0, gestureCanvas.width, gestureCanvas.height);
+  
+  // Redraw center dot
+  const cx = gestureCanvas.width / 2;
+  const cy = gestureCanvas.height / 2;
+  gestureCtx.save();
+  gestureCtx.shadowBlur = 15;
+  gestureCtx.shadowColor = '#8b5cf6';
+  gestureCtx.fillStyle = '#8b5cf6';
+  gestureCtx.beginPath();
+  gestureCtx.arc(cx, cy, 8, 0, 2 * Math.PI);
+  gestureCtx.fill();
+  gestureCtx.restore();
+  
+  // Reset stroke settings after drawing dot
+  gestureCtx.lineWidth = 4;
+  gestureCtx.lineCap = 'round';
+  gestureCtx.lineJoin = 'round';
+  gestureCtx.strokeStyle = '#8b5cf6';
+  gestureCtx.shadowBlur = 2;
+  gestureCtx.shadowColor = 'rgba(139, 92, 246, 0.3)';
+  
+  currentStroke = [];
+  gestureStrokes = [];
+}
+
+/**
+ * v2.0: Update gesture feedback message
+ */
+function updateGestureFeedback(message, className) {
+  const feedback = document.getElementById('gestureFeedback');
+  const progress = document.getElementById('gestureProgress');
+  if (progress) progress.textContent = message;
+  if (feedback) {
+    feedback.className = 'gesture-feedback' + (className ? ' ' + className : '');
+    // Also set text directly on feedback div in case progress span is missing
+    if (!progress) feedback.textContent = message;
+  }
+}
+
+/**
+ * v2.0: Show gesture stage after alignment success
+ */
+function showGestureStage() {
+  const gestureStage = document.getElementById('gestureStage');
+  const gestureText = document.getElementById('gestureText');
+  
+  if (!gestureStage) return;
+  
+  // Set instruction based on challenge type
+  const instructions = {
+    'align_circle': 'Draw a circle around the dot ⭕',
+    'align_swipe': 'Swipe in the direction shown →',
+    'align_circle_swipe': 'Draw a circle, then swipe right',
+    'align_trace': 'Trace the path shown',
+    'align_multi_gesture': 'Complete all gestures in order'
+  };
+  
+  const instruction = challengeData?.v2?.instruction || instructions[challengeData?.v2?.type] || 'Draw a circle';
+  if (gestureText) gestureText.textContent = instruction;
+  
+  gestureStage.style.display = 'block';
+  gestureEnabled = true;
+  gestureCompleted = false;
+  gestureCanDraw = false; // NEW: Wait for beep before drawing
+  clearGestureCanvas();
+  updateGestureFeedback('⏳ Wait for the beep...', 'waiting');
+  
+  console.log('[GESTURE] Gesture stage shown. enabled:', gestureEnabled, 'canDraw:', gestureCanDraw);
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Complete gesture to submit';
+  
+  // NEW: Schedule gesture beep with delay
+  scheduleGestureBeep();
+}
+
+/**
+ * v2.0: Schedule gesture beep with random delay
+ */
+function scheduleGestureBeep() {
+  gestureBeepActive = false;
+  
+  // Random delay between 1.5 and 2.5 seconds (little more time as requested)
+  const delay = 1500 + Math.random() * 1000;
+  
+  console.log('[GESTURE] Scheduling beep in', delay, 'ms');
+  
+  setTimeout(() => {
+    console.log('[GESTURE] Playing beep and enabling drawing');
+    playBeep();
+    gestureBeepActive = true;
+    gestureCanDraw = true;
+    updateGestureFeedback('🎨 Draw now!', 'ready');
+    recordEvent('gesture_beep', { delay: delay });
+  }, delay);
+}
+
+// ========== END v2.0 GESTURE FUNCTIONS ==========
 
 async function fetchChallenge() {
   try {
@@ -1678,21 +2095,55 @@ async function fetchChallenge() {
     
     challengeData = data;
     const challengeBlob = JSON.parse(atob(data.challenge));
-    challengeData._targetAngle = computeTargetAngle(challengeBlob.seed);
     challengeData._challengeBlob = challengeBlob;
     
-    try {
-      updateNoiseParams(challengeBlob.seed, challengeData._targetAngle);
-    } catch (e) {}
+    // v2.0: Check if challenge has angle directly or needs seed computation
+    if (challengeBlob.angle !== undefined) {
+      // v2.0 format: angle is provided directly
+      challengeData._targetAngle = challengeBlob.angle;
+    } else if (challengeBlob.seed !== undefined) {
+      // v1.3 format: compute angle from seed
+      challengeData._targetAngle = computeTargetAngle(challengeBlob.seed);
+    } else {
+      // Fallback: random angle
+      challengeData._targetAngle = Math.floor(Math.random() * 180) - 90;
+    }
     
-    status.textContent = '⏳ Waiting for beep…';
+    // v2.0: Check if v2 gesture challenge is enabled
+    if (challengeBlob.v2 && challengeBlob.v2.type) {
+      challengeData.v2 = challengeBlob.v2;
+      gestureType = challengeBlob.v2.type.includes('circle') ? 'circle' : 
+                    challengeBlob.v2.type.includes('swipe') ? 'swipe' : 'circle';
+      challengeDifficulty = challengeBlob.v2.difficulty || 'EASY';
+      
+      console.log('v2.0 Challenge loaded:', challengeBlob.v2);
+      // Show gesture stage AFTER alignment
+      gestureEnabled = true;
+    }
+    
+    try {
+      // Use seed if available, otherwise use ID for noise params
+      const noiseSeed = challengeBlob.seed || challengeBlob.id || Date.now();
+      updateNoiseParams(noiseSeed, challengeData._targetAngle);
+    } catch (e) {
+      console.log('Noise params update failed:', e);
+    }
+    
+    status.textContent = gestureEnabled ? '⏳ Step 1/2: Waiting for beep…' : '⏳ Waiting for beep…';
     status.className = '';
     submitBtn.disabled = true;
     
     try {
-      const blob = JSON.parse(atob(data.challenge));
-      startRemainingTimer(blob.expires_at - blob.issued_at);
-    } catch (e) {}
+      // v2.0: Use CONFIG.CHALLENGE_TTL (90 seconds) if expires_at not available
+      if (challengeBlob.expires_at && challengeBlob.issued_at) {
+        startRemainingTimer(challengeBlob.expires_at - challengeBlob.issued_at);
+      } else {
+        startRemainingTimer(90); // Default 90 seconds from CONFIG
+      }
+    } catch (e) {
+      console.log('Timer start failed:', e);
+      startRemainingTimer(90); // Fallback to 90 seconds
+    }
     
     scheduleBeep();
   } catch (err) {
@@ -1782,6 +2233,16 @@ async function verifyAttempt(error, reaction) {
     };
   } catch (e) {
     payload.telemetry = { error: e.message, version: VERSION };
+  }
+  
+  // v2.0: Add gesture data if present
+  if (gestureEnabled && gestureStrokes.length > 0) {
+    payload.gesture = {
+      type: gestureType,
+      strokes: gestureStrokes,
+      completed: gestureCompleted,
+      expectedAngle: challengeData?.v2?.expectedAngle || 0
+    };
   }
   
   if (challengeData._challengeBlob && challengeData._challengeBlob.pow_difficulty && challengeData._challengeBlob.pow_difficulty > 0) {
@@ -1891,15 +2352,32 @@ function attemptSubmit() {
     return;
   }
   
+  const normalizedPointer = normalizeAngle(pointerAngle);
+  const normalizedTarget = normalizeAngle(challengeData._targetAngle);
+  const error = angleDiffAbs(normalizedPointer, normalizedTarget);
+  const tolerance = challengeData._challengeBlob?.tolerance || 8;
+  
+  // v2.0: Check if gesture is required but not completed
+  if (gestureEnabled && !gestureCompleted) {
+    // Check alignment first
+    if (error <= tolerance) {
+      status.textContent = '✓ Aligned! Now complete the gesture below.';
+      status.className = 'success';
+      showGestureStage();
+      return;
+    } else {
+      status.textContent = `❌ Alignment too far off (${error.toFixed(1)}° error). Try again.`;
+      status.className = 'error';
+      return;
+    }
+  }
+  
   // Lock submission immediately to prevent race conditions
   submissionLocked = true;
   submitBtn.disabled = true;
   status.textContent = '⏳ Verifying…';
   status.className = '';
   
-  const normalizedPointer = normalizeAngle(pointerAngle);
-  const normalizedTarget = normalizeAngle(challengeData._targetAngle);
-  const error = angleDiffAbs(normalizedPointer, normalizedTarget);
   const reaction = performance.now() - beepStart;
   
   verifyAttempt(error, reaction);

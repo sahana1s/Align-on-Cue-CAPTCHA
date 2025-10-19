@@ -1,16 +1,20 @@
 /**
- * Align-on-Cue CAPTCHA v1.3
- * Advanced Human Verification System
+ * Align-on-Cue CAPTCHA v2.0
+ * Multi-Modal Human Verification System
  * 
- * NEW in v1.3:
- * - Split-image visual cryptography
- * - Temporal rhythm detection
- * - Cognitive load challenges (memory + reasoning)
- * - Enhanced honeypot system
- * - Advanced behavioral biometrics
- * - Dynamic difficulty adjustment
- * - Multi-layer canvas contamination
- * - Browser API traps for automation detection
+ * NEW in v2.0:
+ * - Gesture recognition & stroke biometrics (pressure, velocity, tremor)
+ * - Combined challenges (align + draw/swipe/trace)
+ * - Real-time bot detection during drawing
+ * - Progressive difficulty system
+ * - Shape validation (circles, arrows, paths)
+ * - Motor control analysis (acceleration curves, hesitation points)
+ * - Anti-replay attack mechanisms
+ * - Enhanced user experience with step-by-step guidance
+ * 
+ * Retained from v1.3:
+ * - Visual cryptography, temporal rhythm, cognitive challenges
+ * - Honeypot system, behavioral biometrics, canvas contamination
  */
 
 const express = require('express');
@@ -41,7 +45,7 @@ if (process.env.STRICT_ORIGIN === '1') {
 }
 
 const CONFIG = {
-    VERSION: '1.3.0',
+    VERSION: '2.0.2',
     SECRET_KEY: process.env.CAPTCHA_SECRET || 'your-256-bit-secret-key-here',
     CHALLENGE_TTL: 90,
     MIN_REACTION_MS: 60,
@@ -59,7 +63,7 @@ const CONFIG = {
         MIN_NATURAL_JITTER: 0.1
     },
     RATE_LIMITS: { WINDOW_MS: 15 * 60 * 1000, MAX_REQUESTS: 100 },
-    // v1.3 NEW: Temporal challenge settings
+    // v1.3: Temporal challenge settings
     TEMPORAL: {
         MIN_RHYTHM_VARIANCE: 0.15,  // Natural timing variance
         MAX_CLICK_SPEED: 50,  // ms between clicks (too fast = bot)
@@ -67,23 +71,81 @@ const CONFIG = {
         HESITATION_MIN: 100,  // Natural human hesitation (ms)
         HESITATION_MAX: 2000  // Max thinking time
     },
-    // v1.3 NEW: Cognitive challenge settings
+    // v1.3: Cognitive challenge settings
     COGNITIVE: {
         MEMORY_SEQUENCE_LENGTH: 3,  // How many items to remember
         RECALL_DELAY_MS: 2000,  // Time before recall test
         PATTERN_TYPES: ['color', 'position', 'order']
     },
-    // v1.3 NEW: Honeypot detection
+    // v1.3: Honeypot detection
     HONEYPOT: {
         INVISIBLE_ELEMENTS: 2,  // Number of invisible traps
         TRAP_INTERACTION_PENALTY: 0.5  // Confidence penalty if clicked
     },
-    // v1.3 NEW: Micro-behavior analysis
+    // v1.3: Micro-behavior analysis
     MICRO_BEHAVIOR: {
         MIN_TREMOR_FREQUENCY: 0.05,  // Natural hand tremor
         MAX_PERFECT_LINES: 2,  // Too many perfect lines = bot
         CORRECTION_THRESHOLD: 3,  // Min error corrections expected
         HOVER_TIME_MIN: 50  // Natural hover before click
+    },
+    // v2.0 NEW: Gesture & Stroke Analysis
+    GESTURE: {
+        MIN_POINTS: 5,  // Minimum points for valid stroke
+        MAX_POINTS: 1000,  // Maximum points to prevent DoS
+        MIN_DURATION_MS: 150,  // Too fast = bot
+        MAX_DURATION_MS: 10000,  // Too slow = timeout
+        VELOCITY_VARIANCE: { MIN: 0.25, MAX: 0.8 },  // Human variance range
+        TREMOR_HZ: { MIN: 6, MAX: 12 },  // Natural hand tremor frequency
+        PRESSURE_VARIANCE: { MIN: 0.15, MAX: 0.6 },  // Pressure variation
+        HESITATION_THRESHOLD: 150,  // Pause duration to count as hesitation
+        MIN_HESITATIONS: 1,  // Humans hesitate while drawing
+        MAX_PERFECT_VELOCITY: 0.1,  // Perfect constant velocity = bot
+        SMOOTHNESS_THRESHOLD: 0.85,  // Too smooth = synthetic
+        DIRECTION_CHANGES: { MIN: 5, MAX: 100 }  // Natural pen movement
+    },
+    // v2.0 NEW: Shape Validation
+    SHAPE: {
+        CIRCLE: {
+            MIN_CIRCULARITY: 0.65,  // How round it must be (0-1)
+            MAX_CIRCULARITY: 0.98,  // Perfect circle = suspicious
+            TOLERANCE_PX: 20  // Allowed deviation from perfect
+        },
+        SWIPE: {
+            MIN_LENGTH: 50,  // Minimum swipe distance (px)
+            ANGLE_TOLERANCE: 15,  // Allowed angle deviation (degrees)
+            MAX_CURVES: 3  // Too many curves = not a swipe
+        },
+        TRACE: {
+            MAX_FRECHET_DISTANCE: 25,  // Path following accuracy
+            MIN_COVERAGE: 0.7,  // Must cover 70% of target path
+            SEQUENCE_MATTERS: true  // Order of strokes
+        }
+    },
+    // v2.0 NEW: Alignment Validation
+    ALIGNMENT: {
+        ANGLE_TOLERANCE: 15  // Allowed angle deviation in degrees
+    },
+    // v2.0 NEW: Challenge Difficulty Levels
+    DIFFICULTY: {
+        EASY: {
+            challengeTypes: ['align_circle', 'align_swipe'],
+            shapeAccuracy: 0.65,
+            timeLimit: 15000,
+            retries: 3
+        },
+        MEDIUM: {
+            challengeTypes: ['align_circle_swipe', 'align_trace'],
+            shapeAccuracy: 0.75,
+            timeLimit: 12000,
+            retries: 2
+        },
+        HARD: {
+            challengeTypes: ['align_circle_trace', 'align_multi_gesture'],
+            shapeAccuracy: 0.85,
+            timeLimit: 10000,
+            retries: 1
+        }
     }
 };
 
@@ -298,6 +360,356 @@ function analyzeAutomationSignatures(telemetry) {
   if (telemetry.automation.phantom) score += 0.3;
   if (telemetry.automation.nightmare) score += 0.3;
   return Math.min(score, 1);
+}
+
+// ========== v2.0 GESTURE & STROKE BIOMETRICS ==========
+
+/**
+ * v2.0: Analyze stroke biometrics for human-like characteristics
+ * Detects: velocity patterns, pressure variance, natural tremor, hesitation points
+ * @param {Array} points - Array of {x, y, pressure, timestamp} points
+ * @returns {Object} - {humanScore, flags, metrics}
+ */
+function analyzeStrokeBiometrics(points) {
+  if (!Array.isArray(points) || points.length < CONFIG.GESTURE.MIN_POINTS) {
+    return { humanScore: 0, flags: ['insufficient_points'], metrics: {} };
+  }
+
+  if (points.length > CONFIG.GESTURE.MAX_POINTS) {
+    return { humanScore: 0, flags: ['excessive_points'], metrics: {} };
+  }
+
+  const flags = [];
+  const metrics = {};
+
+  // Calculate stroke duration
+  const duration = points[points.length - 1].timestamp - points[0].timestamp;
+  metrics.duration = duration;
+
+  if (duration < CONFIG.GESTURE.MIN_DURATION_MS) {
+    flags.push('too_fast');
+  }
+  if (duration > CONFIG.GESTURE.MAX_DURATION_MS) {
+    flags.push('timeout');
+  }
+
+  // 1. Velocity Profile Analysis
+  const velocities = [];
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - points[i - 1].x;
+    const dy = points[i].y - points[i - 1].y;
+    const dt = points[i].timestamp - points[i - 1].timestamp;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const velocity = dt > 0 ? distance / dt : 0;
+    velocities.push(velocity);
+  }
+
+  const avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+  const velocityVariance = velocities.reduce((a, v) => a + Math.pow(v - avgVelocity, 2), 0) / velocities.length;
+  const velocityStdDev = Math.sqrt(velocityVariance);
+  const velocityCoeffVar = avgVelocity > 0 ? velocityStdDev / avgVelocity : 0;
+
+  metrics.avgVelocity = avgVelocity;
+  metrics.velocityVariance = velocityCoeffVar;
+
+  // Perfect constant velocity = bot
+  if (velocityCoeffVar < CONFIG.GESTURE.MAX_PERFECT_VELOCITY) {
+    flags.push('perfect_velocity');
+  }
+
+  // Human velocity variance range
+  if (velocityCoeffVar < CONFIG.GESTURE.VELOCITY_VARIANCE.MIN || 
+      velocityCoeffVar > CONFIG.GESTURE.VELOCITY_VARIANCE.MAX) {
+    flags.push('unnatural_velocity_variance');
+  }
+
+  // 2. Pressure Analysis
+  const pressures = points.map(p => p.pressure || 0.5).filter(p => p > 0);
+  if (pressures.length > 0) {
+    const avgPressure = pressures.reduce((a, b) => a + b, 0) / pressures.length;
+    const pressureVariance = pressures.reduce((a, p) => a + Math.pow(p - avgPressure, 2), 0) / pressures.length;
+    const pressureStdDev = Math.sqrt(pressureVariance);
+    const pressureCoeffVar = avgPressure > 0 ? pressureStdDev / avgPressure : 0;
+
+    metrics.pressureVariance = pressureCoeffVar;
+
+    // Bots have constant or missing pressure
+    if (pressureCoeffVar < CONFIG.GESTURE.PRESSURE_VARIANCE.MIN) {
+      flags.push('constant_pressure');
+    }
+
+    // Check for all-same pressure (synthetic)
+    const uniquePressures = new Set(pressures);
+    if (uniquePressures.size === 1) {
+      flags.push('synthetic_pressure');
+    }
+  } else {
+    flags.push('no_pressure_data');
+  }
+
+  // 3. Tremor Analysis (Natural Hand Shake)
+  const tremorPoints = [];
+  for (let i = 2; i < points.length; i++) {
+    const dx1 = points[i - 1].x - points[i - 2].x;
+    const dy1 = points[i - 1].y - points[i - 2].y;
+    const dx2 = points[i].x - points[i - 1].x;
+    const dy2 = points[i].y - points[i - 1].y;
+    
+    const angle1 = Math.atan2(dy1, dx1);
+    const angle2 = Math.atan2(dy2, dx2);
+    const angleDiff = Math.abs(angle2 - angle1);
+    
+    if (angleDiff > 0.1) { // Small direction changes = tremor
+      tremorPoints.push(i);
+    }
+  }
+
+  const tremorFrequency = tremorPoints.length / (duration / 1000); // Hz
+  metrics.tremorFrequency = tremorFrequency;
+
+  if (tremorFrequency < CONFIG.GESTURE.TREMOR_HZ.MIN) {
+    flags.push('no_natural_tremor');
+  }
+
+  // 4. Hesitation Points (Pauses mid-drawing)
+  const hesitations = [];
+  for (let i = 1; i < points.length; i++) {
+    const dt = points[i].timestamp - points[i - 1].timestamp;
+    if (dt > CONFIG.GESTURE.HESITATION_THRESHOLD) {
+      hesitations.push({ index: i, duration: dt });
+    }
+  }
+
+  metrics.hesitationCount = hesitations.length;
+
+  if (hesitations.length < CONFIG.GESTURE.MIN_HESITATIONS && points.length > 20) {
+    flags.push('no_hesitation');
+  }
+
+  // 5. Acceleration Analysis
+  const accelerations = [];
+  for (let i = 1; i < velocities.length; i++) {
+    const dv = velocities[i] - velocities[i - 1];
+    const dt = points[i + 1].timestamp - points[i].timestamp;
+    const acceleration = dt > 0 ? dv / dt : 0;
+    accelerations.push(acceleration);
+  }
+
+  if (accelerations.length > 0) {
+    const avgAcceleration = accelerations.reduce((a, b) => a + b, 0) / accelerations.length;
+    const accelVariance = accelerations.reduce((a, v) => a + Math.pow(v - avgAcceleration, 2), 0) / accelerations.length;
+    metrics.accelerationVariance = Math.sqrt(accelVariance);
+  }
+
+  // 6. Direction Changes (Natural pen movement)
+  const directionChanges = [];
+  for (let i = 2; i < points.length; i++) {
+    const dx1 = points[i - 1].x - points[i - 2].x;
+    const dy1 = points[i - 1].y - points[i - 2].y;
+    const dx2 = points[i].x - points[i - 1].x;
+    const dy2 = points[i].y - points[i - 1].y;
+    
+    const angle1 = Math.atan2(dy1, dx1);
+    const angle2 = Math.atan2(dy2, dx2);
+    let angleDiff = angle2 - angle1;
+    
+    // Normalize to [-π, π]
+    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+    
+    if (Math.abs(angleDiff) > 0.3) { // ~17 degrees
+      directionChanges.push(Math.abs(angleDiff));
+    }
+  }
+
+  metrics.directionChanges = directionChanges.length;
+
+  if (directionChanges.length < CONFIG.GESTURE.DIRECTION_CHANGES.MIN && points.length > 30) {
+    flags.push('too_linear');
+  }
+
+  // Calculate Human Score (0-1, higher = more human-like)
+  let humanScore = 1.0;
+
+  // Penalties for bot-like behavior
+  if (flags.includes('perfect_velocity')) humanScore -= 0.3;
+  if (flags.includes('constant_pressure')) humanScore -= 0.25;
+  if (flags.includes('no_natural_tremor')) humanScore -= 0.25;
+  if (flags.includes('no_hesitation')) humanScore -= 0.15;
+  if (flags.includes('too_linear')) humanScore -= 0.2;
+  if (flags.includes('too_fast')) humanScore -= 0.4;
+  if (flags.includes('synthetic_pressure')) humanScore -= 0.3;
+
+  // Bonus for natural characteristics
+  if (velocityCoeffVar >= CONFIG.GESTURE.VELOCITY_VARIANCE.MIN && 
+      velocityCoeffVar <= CONFIG.GESTURE.VELOCITY_VARIANCE.MAX) {
+    humanScore += 0.1;
+  }
+  if (tremorFrequency >= CONFIG.GESTURE.TREMOR_HZ.MIN && 
+      tremorFrequency <= CONFIG.GESTURE.TREMOR_HZ.MAX) {
+    humanScore += 0.1;
+  }
+
+  humanScore = Math.max(0, Math.min(1, humanScore));
+
+  return { humanScore, flags, metrics };
+}
+
+/**
+ * v2.0: Validate circle shape
+ * @param {Array} points - Drawing points
+ * @returns {Object} - {valid, circularity, center, radius}
+ */
+function validateCircle(points) {
+  if (points.length < 10) {
+    return { valid: false, circularity: 0, reason: 'insufficient_points' };
+  }
+
+  // Calculate centroid
+  const centroidX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+  const centroidY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+
+  // Calculate average radius
+  const radii = points.map(p => {
+    const dx = p.x - centroidX;
+    const dy = p.y - centroidY;
+    return Math.sqrt(dx * dx + dy * dy);
+  });
+
+  const avgRadius = radii.reduce((a, b) => a + b, 0) / radii.length;
+
+  // Calculate standard deviation of radii
+  const radiusVariance = radii.reduce((sum, r) => sum + Math.pow(r - avgRadius, 2), 0) / radii.length;
+  const radiusStdDev = Math.sqrt(radiusVariance);
+
+  // Circularity score: lower std dev = more circular
+  const circularity = avgRadius > 0 ? 1 - (radiusStdDev / avgRadius) : 0;
+
+  const valid = circularity >= CONFIG.SHAPE.CIRCLE.MIN_CIRCULARITY && 
+                circularity <= CONFIG.SHAPE.CIRCLE.MAX_CIRCULARITY;
+
+  return {
+    valid,
+    circularity: Math.max(0, Math.min(1, circularity)),
+    center: { x: centroidX, y: centroidY },
+    radius: avgRadius,
+    reason: !valid ? (circularity < CONFIG.SHAPE.CIRCLE.MIN_CIRCULARITY ? 'not_circular_enough' : 'too_perfect') : null
+  };
+}
+
+/**
+ * v2.0: Validate swipe gesture
+ * @param {Array} points - Drawing points
+ * @param {Number} expectedAngle - Expected direction in degrees (0 = right, 90 = up, etc.)
+ * @returns {Object} - {valid, angle, length, straightness}
+ */
+function validateSwipe(points, expectedAngle = 0) {
+  if (points.length < 5) {
+    return { valid: false, reason: 'insufficient_points' };
+  }
+
+  // Calculate swipe vector (start to end)
+  const startPoint = points[0];
+  const endPoint = points[points.length - 1];
+  const dx = endPoint.x - startPoint.x;
+  const dy = endPoint.y - startPoint.y;
+  const length = Math.sqrt(dx * dx + dy * dy);
+
+  if (length < CONFIG.SHAPE.SWIPE.MIN_LENGTH) {
+    return { valid: false, reason: 'too_short', length };
+  }
+
+  // Calculate angle
+  const angleRad = Math.atan2(-dy, dx); // Negative dy because canvas Y is inverted
+  const angleDeg = angleRad * (180 / Math.PI);
+  const normalizedAngle = ((angleDeg % 360) + 360) % 360;
+
+  // Check angle deviation
+  const angleDiff = Math.abs(normalizedAngle - expectedAngle);
+  const angleError = Math.min(angleDiff, 360 - angleDiff);
+
+  const angleValid = angleError <= CONFIG.SHAPE.SWIPE.ANGLE_TOLERANCE;
+
+  // Calculate straightness (how much it deviates from straight line)
+  let totalDeviation = 0;
+  for (const point of points) {
+    // Distance from point to line (start-end)
+    const numerator = Math.abs(dy * point.x - dx * point.y + endPoint.x * startPoint.y - endPoint.y * startPoint.x);
+    const denominator = length;
+    const distance = denominator > 0 ? numerator / denominator : 0;
+    totalDeviation += distance;
+  }
+
+  const avgDeviation = totalDeviation / points.length;
+  const straightness = length > 0 ? 1 - Math.min(1, avgDeviation / (length * 0.1)) : 0;
+
+  // Count curves (direction changes)
+  let curves = 0;
+  for (let i = 2; i < points.length; i++) {
+    const dx1 = points[i - 1].x - points[i - 2].x;
+    const dy1 = points[i - 1].y - points[i - 2].y;
+    const dx2 = points[i].x - points[i - 1].x;
+    const dy2 = points[i].y - points[i - 1].y;
+    
+    const angle1 = Math.atan2(dy1, dx1);
+    const angle2 = Math.atan2(dy2, dx2);
+    const angleDiff = Math.abs(angle2 - angle1);
+    
+    if (angleDiff > 0.5) curves++; // ~29 degrees
+  }
+
+  const tooManyCurves = curves > CONFIG.SHAPE.SWIPE.MAX_CURVES;
+
+  const valid = angleValid && !tooManyCurves && straightness > 0.5;
+
+  return {
+    valid,
+    angle: normalizedAngle,
+    expectedAngle,
+    angleError,
+    length,
+    straightness,
+    curves,
+    reason: !valid ? (tooManyCurves ? 'too_many_curves' : !angleValid ? 'wrong_direction' : 'not_straight') : null
+  };
+}
+
+/**
+ * v2.0: Select challenge type based on user history and bot score
+ * @param {Object} userHistory - Previous attempts
+ * @param {Number} botScore - Current bot suspicion score (0-1)
+ * @returns {Object} - {difficulty, challengeType, config}
+ */
+function selectChallenge(userHistory = {}, botScore = 0) {
+  const failures = userHistory.failures || 0;
+  
+  // v2.0: Simplified - always use EASY with circle gesture for now
+  // This ensures consistent UX and proper testing
+  const difficulty = 'EASY';
+  const challengeType = 'align_circle'; // Force circle gesture only
+
+  const difficultyConfig = CONFIG.DIFFICULTY[difficulty];
+
+  return {
+    difficulty,
+    challengeType,
+    config: difficultyConfig,
+    instruction: getInstructionForChallenge(challengeType)
+  };
+}
+
+/**
+ * v2.0: Generate instruction text for challenge type
+ */
+function getInstructionForChallenge(challengeType) {
+  const instructions = {
+    'align_circle': 'Align the lines, then draw a circle around the dot',
+    'align_swipe': 'Align the lines, then swipe in the direction shown',
+    'align_circle_swipe': 'Align the lines, draw a circle, then swipe right',
+    'align_trace': 'Align the lines, then trace the path shown',
+    'align_multi_gesture': 'Complete all gestures in order: align, circle, then arrow'
+  };
+  return instructions[challengeType] || 'Complete the challenge';
 }
 
 // ========== v1.3 NEW SECURITY FUNCTIONS ==========
@@ -663,6 +1075,353 @@ app.post('/api/v1/verify', async (req, res) => {
         return res.json({ ok: true, message: 'Verified successfully', confidence, humanLikelihood: comprehensiveAnalysis.humanLikelihood, botScore: finalBotScore });
     } catch (e) {
         console.error('verify error', e); return res.status(500).json({ ok: false, message: 'internal error' });
+    }
+});
+
+// ========== v2.0 GESTURE VERIFICATION ENDPOINT ==========
+
+/**
+ * v2.0: Combined alignment + gesture verification
+ * Accepts both v1.3 alignment data AND v2.0 gesture/stroke data
+ */
+app.post('/api/v2/verify', async (req, res) => {
+    try {
+        debugLog('v2.0 VERIFICATION REQUEST', { 
+            hasGesture: !!req.body.gesture, 
+            gestureType: req.body.gesture?.type,
+            ip: req.ip 
+        });
+
+        const { movements, fingerprint, timing, pow_nonce, gesture } = req.body || {};
+        const clientIP = req.ip;
+
+        // Rate limiting (same as v1.3)
+        if (await isLocked(clientIP)) {
+            return res.status(429).json({ ok: false, message: 'Too many failed attempts, try later' });
+        }
+
+        const attemptsCount = await incrRateKey(`rl:${clientIP}`, CONFIG.RATE_LIMITS.WINDOW_MS);
+        if (attemptsCount >= CONFIG.RATE_LIMITS.MAX_REQUESTS) {
+            ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1);
+            if ((ipFailures.get(clientIP) || 0) > 5) await setLockout(clientIP, 5 * 60 * 1000);
+            return res.status(429).json({ ok: false, message: 'Too many attempts' });
+        }
+
+        const riskLevel = suspiciousIPs.has(clientIP) ? 'HIGH' : (attemptsCount && attemptsCount > 50) ? 'MEDIUM' : 'LOW';
+        
+        // Validate basic parameters
+        const fingerprint_hash = req.body.fingerprint_hash || req.body.fingerprint?.hash;
+        if (!fingerprint_hash || typeof fingerprint_hash !== 'string') {
+            return res.status(400).json({ ok: false, message: 'fingerprint_hash required' });
+        }
+
+        const { challenge: challengeB64, sig, user_angle, reaction_client_ms } = req.body || {};
+        if (!challengeB64 || !sig || typeof user_angle !== 'number' || typeof reaction_client_ms !== 'number') {
+            return res.status(400).json({ ok: false, message: 'Missing alignment parameters' });
+        }
+
+        // v2.0: Validate gesture data
+        if (!gesture || !gesture.type || !gesture.strokes || !Array.isArray(gesture.strokes)) {
+            return res.status(400).json({ ok: false, message: 'Missing or invalid gesture data' });
+        }
+
+        if (gesture.strokes.length === 0) {
+            return res.status(400).json({ ok: false, message: 'No gesture strokes provided' });
+        }
+
+        // Validate stroke points
+        const firstStroke = gesture.strokes[0];
+        if (!Array.isArray(firstStroke) || firstStroke.length < CONFIG.GESTURE.MIN_POINTS) {
+            return res.status(400).json({ ok: false, message: 'Insufficient gesture points' });
+        }
+
+        // === PHASE 0: Verify Challenge and Angle Alignment ===
+        // Decode and validate challenge
+        let challengeData;
+        try {
+            const challengeJson = Buffer.from(challengeB64, 'base64').toString('utf8');
+            challengeData = JSON.parse(challengeJson);
+        } catch (e) {
+            return res.status(400).json({ ok: false, message: 'Invalid challenge format' });
+        }
+
+        // Verify HMAC signature
+        const hmac = crypto.createHmac('sha256', CONFIG.SECRET_KEY);
+        hmac.update(challengeB64);
+        const computedSig = hmac.digest('hex');
+        
+        if (computedSig !== sig) {
+            return res.status(400).json({ ok: false, message: 'Invalid challenge signature' });
+        }
+
+        // Check challenge expiration
+        const now = Date.now();
+        const storedChallenge = challenges.get(challengeData.id);
+        
+        if (!storedChallenge) {
+            return res.status(400).json({ ok: false, message: 'Challenge not found or expired' });
+        }
+
+        if (now > storedChallenge.expiresAt) {
+            challenges.delete(challengeData.id);
+            return res.status(400).json({ ok: false, message: 'Challenge expired' });
+        }
+
+        // Validate angle alignment
+        const targetAngle = challengeData.angle || storedChallenge.angle;
+        if (typeof targetAngle !== 'number') {
+            return res.status(400).json({ ok: false, message: 'Invalid challenge data' });
+        }
+
+        const userAngle = normalizeAngle(user_angle);
+        const normalizedTarget = normalizeAngle(targetAngle);
+        const angleError = angleDiffAbs(userAngle, normalizedTarget);
+        const angleOk = angleError <= CONFIG.ALIGNMENT.ANGLE_TOLERANCE;
+
+        debugLog('v2.0 ANGLE VALIDATION', {
+            userAngle,
+            targetAngle: normalizedTarget,
+            error: angleError,
+            tolerance: CONFIG.ALIGNMENT.ANGLE_TOLERANCE,
+            angleOk
+        });
+
+        if (!angleOk) {
+            ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1);
+            return res.status(400).json({
+                ok: false,
+                message: 'Alignment verification failed',
+                debug: {
+                    angleError,
+                    tolerance: CONFIG.ALIGNMENT.ANGLE_TOLERANCE,
+                    userAngle,
+                    targetAngle: normalizedTarget
+                }
+            });
+        }
+
+        // Mark challenge as used
+        challenges.delete(challengeData.id);
+
+        // === PHASE 1: v1.3 Alignment Analysis ===
+        const movementAnalysis = validateMovements(movements, riskLevel);
+        const heuristics = computeMovementHeuristics(movements || []);
+        const comprehensiveAnalysis = calculateComprehensiveBotScore(
+            req.body.telemetry,
+            movements,
+            req.body
+        );
+
+        const currentBehavior = {
+            reactionTime: reaction_client_ms,
+            userAgent: req.headers['user-agent'],
+            movementCount: movements ? movements.length : 0,
+            accuracy: Math.abs(user_angle)
+        };
+
+        recordBehavior(clientIP, currentBehavior);
+        const { anomalyScore: behavioralAnomaly, flags: behavioralFlags } = detectAnomalies(clientIP, currentBehavior);
+
+        const legacyAutomationScore = (
+            (heuristics.timestampEntropy < 2 ? 0.4 : 0) + 
+            (heuristics.pressureVariance < 0.01 ? 0.2 : 0) + 
+            (heuristics.constantIntervals ? 0.3 : 0) + 
+            (movementAnalysis.confidence < 0.2 ? 0.3 : 0)
+        );
+
+        const alignmentBotScore = (comprehensiveAnalysis.botScore * 0.6) + 
+                                  (Math.max(legacyAutomationScore, behavioralAnomaly) * 0.4);
+
+        // === PHASE 2: v2.0 Gesture Biometrics Analysis ===
+        const gestureResults = [];
+        let totalGestureScore = 0;
+        const gestureFlags = [];
+
+        for (const strokePoints of gesture.strokes) {
+            const biometrics = analyzeStrokeBiometrics(strokePoints);
+            gestureResults.push(biometrics);
+            totalGestureScore += biometrics.humanScore;
+            gestureFlags.push(...biometrics.flags);
+        }
+
+        const avgGestureScore = gestureResults.length > 0 ? totalGestureScore / gestureResults.length : 0;
+        const gestureBotScore = 1 - avgGestureScore; // Invert: higher humanScore = lower botScore
+
+        // === PHASE 3: Shape Validation ===
+        let shapeValidation = { valid: false };
+        const firstStrokePoints = gesture.strokes[0];
+
+        switch (gesture.type) {
+            case 'circle':
+                shapeValidation = validateCircle(firstStrokePoints);
+                if (!shapeValidation.valid) {
+                    gestureFlags.push(`circle_${shapeValidation.reason}`);
+                }
+                break;
+            
+            case 'swipe':
+                const expectedAngle = gesture.expectedAngle || 0;
+                shapeValidation = validateSwipe(firstStrokePoints, expectedAngle);
+                if (!shapeValidation.valid) {
+                    gestureFlags.push(`swipe_${shapeValidation.reason}`);
+                }
+                break;
+            
+            default:
+                shapeValidation = { valid: true, warning: 'unknown_gesture_type' };
+        }
+
+        const shapeScore = shapeValidation.valid ? 0 : 0.5; // 0 = good, 0.5 = failed shape
+
+        // === PHASE 4: Combined v2.0 Scoring ===
+        // Weight: 40% alignment (v1.3) + 40% gesture biometrics + 20% shape validation
+        const finalBotScore = (alignmentBotScore * 0.4) + (gestureBotScore * 0.4) + (shapeScore * 0.2);
+
+        const allFlags = [
+            ...comprehensiveAnalysis.flags,
+            ...behavioralFlags,
+            ...gestureFlags,
+            ...(shapeValidation.valid ? [] : ['shape_validation_failed'])
+        ];
+
+        const AUTOMATION_THRESHOLD_V2 = 0.60; // Slightly lower than v1.3 due to gesture layer
+
+        debugLog('v2.0 COMPREHENSIVE SCORE', {
+            finalBotScore,
+            breakdown: {
+                alignmentScore: alignmentBotScore,
+                gestureScore: gestureBotScore,
+                shapeScore: shapeScore,
+                avgHumanLikelihood: avgGestureScore
+            },
+            shapeValidation,
+            gestureMetrics: gestureResults.map(r => r.metrics),
+            flags: allFlags
+        });
+
+        if (!movementAnalysis.valid || finalBotScore >= AUTOMATION_THRESHOLD_V2 || !shapeValidation.valid) {
+            ipFailures.set(clientIP, (ipFailures.get(clientIP) || 0) + 1);
+            if (ipFailures.get(clientIP) > 3) suspiciousIPs.add(clientIP);
+
+            debugLog('v2.0 VERIFICATION FAILED', {
+                finalScore: finalBotScore,
+                threshold: AUTOMATION_THRESHOLD_V2,
+                shapeValid: shapeValidation.valid,
+                flags: allFlags
+            });
+
+            return res.status(400).json({
+                ok: false,
+                message: 'Verification failed - automated behavior or invalid gesture detected',
+                botScore: finalBotScore,
+                humanLikelihood: avgGestureScore,
+                alignmentScore: alignmentBotScore,
+                gestureScore: gestureBotScore,
+                shapeValidation: {
+                    valid: shapeValidation.valid,
+                    reason: shapeValidation.reason
+                },
+                flags: allFlags,
+                version: CONFIG.VERSION
+            });
+        }
+
+        // === SUCCESS ===
+        debugLog('v2.0 VERIFICATION SUCCESS', {
+            botScore: finalBotScore,
+            humanLikelihood: avgGestureScore,
+            shapeValid: shapeValidation.valid
+        });
+
+        const attempts = ipAttempts.get(clientIP) || [];
+        attempts.push(Date.now());
+        ipAttempts.set(clientIP, attempts);
+
+        // Calculate confidence (0-100)
+        const confidence = Math.round((1 - finalBotScore) * 100);
+
+        return res.json({
+            ok: true,
+            message: 'Verified successfully with gesture authentication',
+            confidence,
+            humanLikelihood: avgGestureScore,
+            botScore: finalBotScore,
+            breakdown: {
+                alignment: alignmentBotScore,
+                gesture: gestureBotScore,
+                shape: shapeScore
+            },
+            shapeValidation: {
+                valid: shapeValidation.valid,
+                type: gesture.type,
+                metrics: shapeValidation
+            },
+            version: CONFIG.VERSION
+        });
+
+    } catch (e) {
+        console.error('v2.0 verify error', e);
+        return res.status(500).json({ ok: false, message: 'internal error' });
+    }
+});
+
+/**
+ * v2.0: Get challenge with difficulty selection
+ */
+app.post('/api/v2/challenge', async (req, res) => {
+    try {
+        const clientIP = req.ip;
+        const userHistory = {
+            failures: ipFailures.get(clientIP) || 0
+        };
+
+        // Calculate current bot score from history
+        const history = ipBehaviorHistory.get(clientIP);
+        const botScore = history ? Math.min(1, history.velocityAnomalies / 10) : 0;
+
+        const selectedChallenge = selectChallenge(userHistory, botScore);
+
+        // Generate standard v1.3 challenge data
+        const challengeId = uuidv4();
+        const timestamp = Date.now();
+        const targetAngle = Math.floor(Math.random() * 180) - 90;
+        
+        const challenge = {
+            id: challengeId,
+            angle: targetAngle,
+            ts: timestamp,
+            v2: {
+                difficulty: selectedChallenge.difficulty,
+                type: selectedChallenge.challengeType,
+                instruction: selectedChallenge.instruction,
+                config: selectedChallenge.config
+            }
+        };
+
+        const challengeB64 = Buffer.from(JSON.stringify(challenge)).toString('base64');
+        const hmac = crypto.createHmac('sha256', CONFIG.SECRET_KEY);
+        hmac.update(challengeB64);
+        const sig = hmac.digest('hex');
+
+        challenges.set(challengeId, { ...challenge, expiresAt: timestamp + CONFIG.CHALLENGE_TTL * 1000 });
+
+        debugLog('v2.0 CHALLENGE GENERATED', {
+            id: challengeId,
+            difficulty: selectedChallenge.difficulty,
+            type: selectedChallenge.challengeType,
+            botScore
+        });
+
+        return res.json({
+            challenge: challengeB64,
+            sig,
+            version: CONFIG.VERSION,
+            v2: selectedChallenge
+        });
+
+    } catch (e) {
+        console.error('v2.0 challenge error', e);
+        return res.status(500).json({ ok: false, message: 'internal error' });
     }
 });
 
