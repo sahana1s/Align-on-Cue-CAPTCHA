@@ -2,7 +2,7 @@
 
 A direction-agnostic alignment CAPTCHA that tests human reaction time and motor control while being resistant to automated attacks.
 
-## How It Works
+## How It Works 
 
 1. **Challenge Generation**
    - Server generates a random target angle and challenge token
